@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yiddish ASR Platform - Unified Architecture</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #22223a;
+            --accent-blue: #00d4ff;
+            --accent-magenta: #ff006e;
+            --accent-green: #00ff88;
+            --accent-yellow: #ffcc00;
+            --accent-orange: #ff8c00;
+            --accent-purple: #b366ff;
+            --accent-red: #ff4466;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888aa;
+            --text-muted: #555577;
+            --border: #2a2a44;
+            --border-glow: rgba(0, 212, 255, 0.3);
+            --status-done: #00ff88;
+            --status-progress: #ffcc00;
+            --status-planned: #ff4466;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+        /* ─── NAV ─── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+        }
+        .nav-inner {
+            display: flex; align-items: center; justify-content: space-between;
+            max-width: 1400px; margin: 0 auto;
+        }
+        .nav-brand {
+            font-size: 0.85rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-magenta));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; white-space: nowrap; padding: 0.85rem 0;
+        }
+        nav ul {
+            display: flex; gap: 0.15rem; list-style: none;
+            overflow-x: auto; scrollbar-width: none;
+        }
+        nav ul::-webkit-scrollbar { display: none; }
+        nav a {
+            display: block; padding: 0.85rem 0.7rem;
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 0.72rem; font-weight: 500;
+            white-space: nowrap; transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        nav a:hover, nav a.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        /* ─── HERO ─── */
+        .hero {
+            padding: 8rem 2rem 4rem;
+            text-align: center;
+            background: radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 70%);
+            position: relative;
+        }
+        .hero::after {
+            content: '';
+            position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-magenta), transparent);
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-magenta));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; margin-bottom: 1rem;
+        }
+        .hero p {
+            font-size: 1.1rem; color: var(--text-secondary);
+            max-width: 750px; margin: 0 auto 2rem;
+        }
+        .hero-badges {
+            display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+        .badge {
+            padding: 0.35rem 0.85rem; border-radius: 100px;
+            font-size: 0.75rem; font-weight: 600;
+            border: 1px solid var(--border); background: var(--bg-card);
+        }
+        .badge.laravel { color: #ff4444; border-color: rgba(255,68,68,0.3); }
+        .badge.vue { color: #42b883; border-color: rgba(66,184,131,0.3); }
+        .badge.python { color: var(--accent-yellow); border-color: rgba(255,204,0,0.3); }
+        .badge.js { color: var(--accent-orange); border-color: rgba(255,140,0,0.3); }
+        .badge.cf { color: var(--accent-blue); border-color: rgba(0,212,255,0.3); }
+        .badge.sqlite { color: #00a0d6; border-color: rgba(0,160,214,0.3); }
+
+        /* ─── STATUS LEGEND ─── */
+        .legend {
+            display: flex; gap: 1.5rem; justify-content: center;
+            flex-wrap: wrap; margin-top: 1.5rem;
+        }
+        .legend-item {
+            display: flex; align-items: center; gap: 0.5rem;
+            font-size: 0.8rem; color: var(--text-secondary);
+        }
+        .legend-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+        .legend-dot.done { background: var(--status-done); box-shadow: 0 0 8px rgba(0,255,136,0.4); }
+        .legend-dot.progress { background: var(--status-progress); box-shadow: 0 0 8px rgba(255,204,0,0.4); }
+        .legend-dot.planned { background: var(--status-planned); box-shadow: 0 0 8px rgba(255,68,102,0.4); }
+
+        /* ─── SECTIONS ─── */
+        section {
+            max-width: 1400px; margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+        section h2 {
+            font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem;
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        section h2 .section-num {
+            font-size: 0.8rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-magenta));
+            color: #fff; padding: 0.25rem 0.65rem; border-radius: 6px;
+        }
+        .section-subtitle {
+            color: var(--text-secondary); font-size: 1rem;
+            margin-bottom: 2.5rem;
+        }
+        .divider {
+            height: 1px; margin: 0 auto;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+        }
+
+        /* ─── COLLAPSIBLE SECTIONS ─── */
+        .collapsible {
+            cursor: pointer; user-select: none;
+        }
+        .collapsible::after {
+            content: ' \25BC'; font-size: 0.7em; color: var(--accent-blue);
+            transition: transform 0.3s;
+        }
+        .collapsible.collapsed::after {
+            content: ' \25B6';
+        }
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.3s ease;
+            max-height: 5000px; opacity: 1;
+        }
+        .collapsible-content.hidden {
+            max-height: 0; opacity: 0;
+        }
+
+        /* ─── DIAGRAM BOX ─── */
+        .diagram {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin: 2rem 0;
+            overflow-x: auto;
+            position: relative;
+        }
+        .diagram-title {
+            font-size: 0.75rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--accent-blue); margin-bottom: 1.5rem;
+        }
+
+        /* ─── SYSTEM OVERVIEW DIAGRAM ─── */
+        .sys-overview {
+            display: flex; flex-direction: column; gap: 2rem;
+            align-items: center; min-width: 900px;
+        }
+        .sys-row {
+            display: flex; gap: 2rem; justify-content: center;
+            flex-wrap: nowrap; width: 100%;
+        }
+        .sys-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-width: 260px; max-width: 320px;
+            flex: 1;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .sys-box:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 25px rgba(0,212,255,0.1);
+            transform: translateY(-3px);
+        }
+        .sys-box h4 {
+            font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .sys-box p {
+            font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;
+        }
+        .sys-box .tech {
+            display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.75rem;
+        }
+        .sys-box .tech span {
+            font-size: 0.65rem; padding: 0.15rem 0.5rem;
+            background: rgba(0,212,255,0.1); color: var(--accent-blue);
+            border-radius: 4px; border: 1px solid rgba(0,212,255,0.2);
+        }
+        .sys-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem; font-weight: 800;
+        }
+        .sys-icon.cleaner { background: linear-gradient(135deg, #ff4444, #ff6b6b); color: #fff; }
+        .sys-icon.mapping { background: linear-gradient(135deg, var(--accent-blue), #0099cc); color: #fff; }
+        .sys-icon.alignment { background: linear-gradient(135deg, var(--accent-yellow), var(--accent-orange)); color: #000; }
+
+        /* ─── ARROWS ─── */
+        .arrow-row {
+            display: flex; justify-content: center; align-items: center;
+            gap: 1rem; width: 100%; padding: 0 2rem;
+        }
+        .arrow-down {
+            width: 2px; height: 40px;
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-magenta));
+            position: relative;
+        }
+        .arrow-down::after {
+            content: ''; position: absolute; bottom: -6px; left: -5px;
+            border-left: 6px solid transparent; border-right: 6px solid transparent;
+            border-top: 8px solid var(--accent-magenta);
+        }
+        .arrow-horizontal {
+            flex: 1; height: 2px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-magenta));
+            position: relative;
+        }
+        .arrow-horizontal::after {
+            content: ''; position: absolute; right: -6px; top: -5px;
+            border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+            border-left: 8px solid var(--accent-magenta);
+        }
+        .arrow-horizontal.reverse::after {
+            right: auto; left: -6px;
+            border-left: none;
+            border-right: 8px solid var(--accent-blue);
+        }
+        .arrow-label {
+            font-size: 0.65rem; color: var(--text-muted);
+            white-space: nowrap; padding: 0 0.5rem;
+            background: var(--bg-secondary);
+        }
+        .arrow-bidirectional {
+            flex: 1; height: 2px; position: relative;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-magenta), var(--accent-blue));
+        }
+        .arrow-bidirectional::before {
+            content: ''; position: absolute; left: -6px; top: -5px;
+            border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+            border-right: 8px solid var(--accent-blue);
+        }
+        .arrow-bidirectional::after {
+            content: ''; position: absolute; right: -6px; top: -5px;
+            border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+            border-left: 8px solid var(--accent-blue);
+        }
+
+        /* ─── CARDS GRID ─── */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem; margin: 1.5rem 0;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.75rem;
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 30px rgba(0,212,255,0.07);
+            transform: translateY(-2px);
+        }
+        .card h4 {
+            font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .card p, .card li {
+            font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;
+        }
+        .card ul { padding-left: 1.2rem; margin-top: 0.5rem; }
+        .card li { margin-bottom: 0.3rem; }
+        .card .card-tag {
+            display: inline-block; font-size: 0.65rem; font-weight: 600;
+            padding: 0.15rem 0.55rem; border-radius: 4px; margin-bottom: 0.75rem;
+        }
+        .card .card-tag.green { background: rgba(0,255,136,0.15); color: var(--status-done); }
+        .card .card-tag.yellow { background: rgba(255,204,0,0.15); color: var(--status-progress); }
+        .card .card-tag.red { background: rgba(255,68,102,0.15); color: var(--status-planned); }
+
+        /* ─── PIPELINE DIAGRAM ─── */
+        .pipeline {
+            display: flex; align-items: center; gap: 0;
+            overflow-x: auto; padding: 1rem 0;
+            min-width: 0;
+        }
+        .pipeline-step {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            min-width: 150px;
+            text-align: center;
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+        .pipeline-step:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .pipeline-step.done { border-color: var(--status-done); }
+        .pipeline-step.progress { border-color: var(--status-progress); }
+        .pipeline-step.planned { border-color: var(--status-planned); }
+        .pipeline-step h5 {
+            font-size: 0.8rem; font-weight: 700; margin-bottom: 0.3rem;
+        }
+        .pipeline-step p {
+            font-size: 0.7rem; color: var(--text-secondary);
+        }
+        .pipeline-arrow {
+            width: 40px; height: 2px; flex-shrink: 0;
+            background: var(--border);
+            position: relative;
+        }
+        .pipeline-arrow::after {
+            content: ''; position: absolute; right: -1px; top: -5px;
+            border-top: 6px solid transparent; border-bottom: 6px solid transparent;
+            border-left: 8px solid var(--border);
+        }
+        .pipeline-arrow.done { background: var(--status-done); }
+        .pipeline-arrow.done::after { border-left-color: var(--status-done); }
+        .pipeline-arrow.progress { background: var(--status-progress); }
+        .pipeline-arrow.progress::after { border-left-color: var(--status-progress); }
+
+        /* ─── TECH STACK TABLE ─── */
+        .stack-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .stack-table th {
+            text-align: left; padding: 0.75rem 1rem;
+            font-size: 0.75rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--accent-blue);
+            border-bottom: 2px solid var(--border);
+            background: var(--bg-secondary);
+        }
+        .stack-table td {
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem; color: var(--text-secondary);
+            border-bottom: 1px solid rgba(42,42,68,0.5);
+        }
+        .stack-table tr:hover td {
+            background: rgba(0,212,255,0.03);
+        }
+        .stack-table .layer-label {
+            font-weight: 700; color: var(--text-primary);
+            font-size: 0.8rem;
+        }
+
+        /* ─── DATABASE SCHEMA ─── */
+        .schema-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem; margin: 1.5rem 0;
+        }
+        .entity {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .entity:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 20px rgba(0,212,255,0.08);
+        }
+        .entity-header {
+            padding: 0.75rem 1rem;
+            font-size: 0.85rem; font-weight: 700;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .entity-header .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .entity-body {
+            padding: 0.75rem 1rem;
+        }
+        .entity-field {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.3rem 0;
+            font-size: 0.78rem;
+        }
+        .entity-field .fname { color: var(--text-primary); font-weight: 500; }
+        .entity-field .ftype { color: var(--text-muted); font-size: 0.7rem; font-family: monospace; }
+        .entity-field.pk .fname { color: var(--accent-yellow); }
+        .entity-field.fk .fname { color: var(--accent-blue); }
+
+        /* ─── FLOW DIAGRAM ─── */
+        .flow-container {
+            display: flex; flex-direction: column; gap: 1.5rem;
+            align-items: center; padding: 1rem 0;
+        }
+        .flow-row {
+            display: flex; gap: 1.5rem; align-items: center;
+            justify-content: center; flex-wrap: wrap;
+        }
+        .flow-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            min-width: 140px;
+            transition: all 0.3s;
+        }
+        .flow-box:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+        .flow-box h5 {
+            font-size: 0.8rem; font-weight: 700; margin-bottom: 0.25rem;
+        }
+        .flow-box p {
+            font-size: 0.7rem; color: var(--text-secondary);
+        }
+        .flow-box.highlight {
+            border-color: var(--accent-magenta);
+            background: rgba(255,0,110,0.05);
+        }
+        .flow-arrow-d {
+            width: 2px; height: 30px;
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-magenta));
+            position: relative;
+        }
+        .flow-arrow-d::after {
+            content: ''; position: absolute; bottom: -6px; left: -5px;
+            border-left: 6px solid transparent; border-right: 6px solid transparent;
+            border-top: 8px solid var(--accent-magenta);
+        }
+
+        /* ─── INFRA DIAGRAM ─── */
+        .infra-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem; margin: 1.5rem 0;
+        }
+        .infra-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+        .infra-box:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 4px 25px rgba(0,212,255,0.07);
+        }
+        .infra-box h4 {
+            font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .infra-box ul {
+            list-style: none; padding: 0;
+        }
+        .infra-box li {
+            font-size: 0.8rem; color: var(--text-secondary);
+            padding: 0.3rem 0;
+            padding-left: 1rem;
+            position: relative;
+        }
+        .infra-box li::before {
+            content: '\25B8'; position: absolute; left: 0;
+            color: var(--accent-blue); font-size: 0.7rem;
+        }
+
+        /* ─── CODE BLOCK ─── */
+        .code-block {
+            background: #0d0d18;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.78rem;
+            line-height: 1.8;
+            overflow-x: auto;
+            color: var(--text-secondary);
+            margin: 1rem 0;
+        }
+        .code-block .kw { color: var(--accent-magenta); }
+        .code-block .str { color: var(--accent-green); }
+        .code-block .comment { color: var(--text-muted); font-style: italic; }
+        .code-block .fn { color: var(--accent-blue); }
+        .code-block .type { color: var(--accent-yellow); }
+
+        /* ─── STATUS INDICATOR ─── */
+        .status {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.55rem;
+            border-radius: 4px;
+        }
+        .status.done { background: rgba(0,255,136,0.12); color: var(--status-done); }
+        .status.progress { background: rgba(255,204,0,0.12); color: var(--status-progress); }
+        .status.planned { background: rgba(255,68,102,0.12); color: var(--status-planned); }
+        .status::before {
+            content: ''; width: 6px; height: 6px; border-radius: 50%;
+        }
+        .status.done::before { background: var(--status-done); }
+        .status.progress::before { background: var(--status-progress); }
+        .status.planned::before { background: var(--status-planned); }
+
+        /* ─── INTEGRATION MERGE DIAGRAM ─── */
+        .merge-diagram {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 0.75rem;
+            padding: 2rem 0;
+        }
+        .merge-sources {
+            display: flex; gap: 2rem; align-items: flex-end;
+        }
+        .merge-box {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            min-width: 200px;
+            transition: all 0.3s;
+        }
+        .merge-box:hover { transform: translateY(-3px); }
+        .merge-box.source-a { border-color: var(--accent-blue); }
+        .merge-box.source-b { border-color: var(--accent-yellow); }
+        .merge-box.dest { border-color: var(--accent-green); border-width: 3px; background: rgba(0,255,136,0.03); }
+        .merge-box h5 { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .merge-box p { font-size: 0.72rem; color: var(--text-secondary); }
+        .merge-lines {
+            display: flex; align-items: flex-start; justify-content: center;
+            gap: 0; width: 400px; height: 40px;
+            position: relative;
+        }
+        .merge-line-l, .merge-line-r {
+            position: absolute; top: 0;
+            width: 2px; height: 40px;
+        }
+        .merge-line-l {
+            left: 25%;
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-green));
+            transform: rotate(20deg); transform-origin: top center;
+        }
+        .merge-line-r {
+            right: 25%;
+            background: linear-gradient(180deg, var(--accent-yellow), var(--accent-green));
+            transform: rotate(-20deg); transform-origin: top center;
+        }
+
+        /* ─── REPO LINKS ─── */
+        .repo-link {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            font-size: 0.8rem; color: var(--accent-blue);
+            text-decoration: none; padding: 0.4rem 0.8rem;
+            border: 1px solid rgba(0,212,255,0.3);
+            border-radius: 6px; transition: all 0.2s;
+            margin: 0.25rem;
+        }
+        .repo-link:hover {
+            background: rgba(0,212,255,0.1);
+            border-color: var(--accent-blue);
+        }
+
+        /* ─── FOOTER ─── */
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+        footer a { color: var(--accent-blue); text-decoration: none; }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 900px) {
+            .infra-grid { grid-template-columns: 1fr; }
+            .sys-overview { min-width: 0; }
+            .sys-row { flex-direction: column; align-items: center; }
+            .nav-brand { display: none; }
+            nav a { font-size: 0.68rem; padding: 0.75rem 0.5rem; }
+            .merge-sources { flex-direction: column; align-items: center; }
+            .merge-lines { display: none; }
+        }
+        @media (max-width: 600px) {
+            .cards { grid-template-columns: 1fr; }
+            section { padding: 2.5rem 1rem; }
+            .hero { padding: 6rem 1rem 3rem; }
+        }
+
+        /* ─── ANIMATIONS ─── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        .pulse-glow {
+            animation: pulseGlow 3s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0,212,255,0.1); }
+            50% { box-shadow: 0 0 25px rgba(0,212,255,0.2); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════ NAV ════════════════════════════════ -->
+<nav>
+    <div class="nav-inner">
+        <div class="nav-brand">YIDDISH ASR PLATFORM</div>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#tech-stack">Tech Stack</a></li>
+            <li><a href="#pipelines">Pipelines</a></li>
+            <li><a href="#data-flow">Data Flow</a></li>
+            <li><a href="#integration">Integration</a></li>
+            <li><a href="#api">API Layer</a></li>
+            <li><a href="#schema">DB Schema</a></li>
+            <li><a href="#infra">Infrastructure</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- ════════════════════════════════ HERO ════════════════════════════════ -->
+<header class="hero">
+    <h1>Yiddish ASR Platform</h1>
+    <p>Unified architecture documentation for three interconnected systems: transcript cleaning, audio-text mapping, and word-level alignment -- building toward production-grade Yiddish speech recognition.</p>
+    <div class="hero-badges">
+        <span class="badge laravel">Laravel 12</span>
+        <span class="badge vue">Vue 3 + Inertia</span>
+        <span class="badge python">Python / stable-ts</span>
+        <span class="badge js">Vanilla JS</span>
+        <span class="badge cf">Cloudflare Pages</span>
+        <span class="badge sqlite">SQLite</span>
+    </div>
+    <div class="legend">
+        <div class="legend-item"><span class="legend-dot done"></span> Implemented</div>
+        <div class="legend-item"><span class="legend-dot progress"></span> In Progress</div>
+        <div class="legend-item"><span class="legend-dot planned"></span> Not Yet Built</div>
+    </div>
+    <div style="margin-top:1.5rem;">
+        <a class="repo-link" href="https://github.com/Abe1018776/yiddish-cleaner" target="_blank">yiddish-cleaner</a>
+        <a class="repo-link" href="https://github.com/Abe1018776/yiddish-mapping" target="_blank">yiddish-mapping</a>
+        <a class="repo-link" href="https://github.com/Abe1018776/yiddish-audio-alignment" target="_blank">yiddish-audio-alignment</a>
+    </div>
+</header>
+
+<!-- ═══════════════════════ 1. SYSTEM OVERVIEW ═══════════════════════ -->
+<section id="overview">
+    <h2 class="collapsible" onclick="toggleSection(this)"><span class="section-num">01</span> System Overview</h2>
+    <p class="section-subtitle">Three repositories, one mission: accurate Yiddish speech recognition through cleaning, mapping, and alignment.</p>
+    <div class="collapsible-content">
+
+    <div class="diagram">
+        <div class="diagram-title">High-Level System Architecture</div>
+        <div class="sys-overview">
+
+            <!-- Top row: 3 systems -->
+            <div class="sys-row">
+                <div class="sys-box pulse-glow">
+                    <h4><span class="sys-icon cleaner">YC</span> Yiddish Cleaner</h4>
+                    <p>Full-stack Laravel application for transcript cleaning, ASR benchmarking, custom WER scoring, and the 50-hour training pipeline. The central hub that will unify all three systems.</p>
+                    <div class="tech">
+                        <span>Laravel 12</span><span>Vue 3</span><span>Inertia.js</span><span>SQLite</span><span>WebSocket</span>
+                    </div>
+                    <div style="margin-top:0.75rem"><span class="status done">Implemented</span></div>
+                </div>
+
+                <div class="sys-box">
+                    <h4><span class="sys-icon mapping">MP</span> Audio-Text Mapping</h4>
+                    <p>Client-side SPA for matching 4,669 audio files to 1,065 transcripts using Hebrew date matching and confidence scoring. Exports verified pairs for the training pipeline.</p>
+                    <div class="tech">
+                        <span>Vanilla JS</span><span>Static JSON</span><span>Cloudflare Pages</span><span>localStorage</span>
+                    </div>
+                    <div style="margin-top:0.75rem"><span class="status done">Implemented</span></div>
+                </div>
+
+                <div class="sys-box">
+                    <h4><span class="sys-icon alignment">AL</span> Audio Alignment</h4>
+                    <p>Confusion-aware word-level alignment using a Yiddish-tuned Whisper model on serverless GPU. Powers karaoke playback and word-level accuracy review.</p>
+                    <div class="tech">
+                        <span>Python 3.11</span><span>stable-ts</span><span>RunPod GPU</span><span>Flask</span><span>Cloudflare</span>
+                    </div>
+                    <div style="margin-top:0.75rem"><span class="status done">Implemented</span></div>
+                </div>
+            </div>
+
+            <!-- Arrows down -->
+            <div class="arrow-row">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                    <div class="arrow-down"></div>
+                    <span class="arrow-label">Orchestrates pipelines</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                    <div class="arrow-down"></div>
+                    <span class="arrow-label">Exports matched pairs</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                    <div class="arrow-down"></div>
+                    <span class="arrow-label">Returns timestamps</span>
+                </div>
+            </div>
+
+            <!-- Shared foundation -->
+            <div class="sys-row">
+                <div class="sys-box" style="max-width:100%;min-width:0;flex:1;border-color:var(--accent-purple);">
+                    <h4 style="justify-content:center;">Shared Data Foundation</h4>
+                    <p style="text-align:center;">Google Drive stores raw audio (MP3) and transcript documents (DOCX). Google Sheets tracks metadata for batch imports. All three systems read from and contribute to this shared storage layer.</p>
+                    <div class="tech" style="justify-content:center;margin-top:0.75rem;">
+                        <span>Google Drive</span><span>Google Sheets</span><span>Audio Files (4,669)</span><span>Transcripts (1,065)</span><span>Hebrew Date Metadata</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Connection summary cards -->
+    <div class="cards">
+        <div class="card">
+            <h4>Cleaner <span style="color:var(--accent-blue);">&harr;</span> Mapping</h4>
+            <p>The Mapping tool exports verified audio-transcript pairs as CSV. The Cleaner imports these via Google Sheets, pulling audio and transcript files from Drive into the training pipeline.</p>
+            <ul>
+                <li>Mapping identifies which audio matches which transcript</li>
+                <li>Cleaner consumes matched pairs for cleaning and benchmarking</li>
+                <li>423 curated pairs form the 50-hour training selection</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4>Cleaner <span style="color:var(--accent-blue);">&harr;</span> Alignment</h4>
+            <p>Once transcripts are cleaned and validated in the Cleaner, they are sent alongside audio to the Alignment engine for word-level timestamp generation.</p>
+            <ul>
+                <li>Cleaner triggers alignment jobs via API proxy</li>
+                <li>Alignment returns word-level timestamps and confidence scores</li>
+                <li>Results power the word-level review and custom WER interface</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4>Mapping <span style="color:var(--accent-blue);">&harr;</span> Alignment</h4>
+            <p>Mapping provides the matched pairs; Alignment operates on them. Currently independent, but the unified system will chain them: match first, then align.</p>
+            <ul>
+                <li>Mapping supplies audio + transcript pairs</li>
+                <li>Alignment processes pairs into timestamped output</li>
+                <li>Future: automated pipeline from match to alignment</li>
+            </ul>
+        </div>
+    </div>
+
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ 2. TECH STACK ═══════════════════════ -->
+<section id="tech-stack">
+    <h2 class="collapsible" onclick="toggleSection(this)"><span class="section-num">02</span> Tech Stack Layers</h2>
+    <p class="section-subtitle">Complete technology inventory across all three systems.</p>
+    <div class="collapsible-content">
+
+    <div class="diagram">
+        <div class="diagram-title">Technology Stack by Layer</div>
+        <table class="stack-table">
+            <thead>
+                <tr>
+                    <th>Layer</th>
+                    <th>Yiddish Cleaner</th>
+                    <th>Audio-Text Mapping</th>
+                    <th>Audio Alignment</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="layer-label">Frontend</td>
+                    <td>Vue 3 + TypeScript, Inertia.js v2, Tailwind CSS v4, shadcn-vue (25+ components), "Midnight Neon" dark theme</td>
+                    <td>Vanilla HTML/CSS/JS (620 lines), RTL support, sortable tables, search modal, localStorage persistence</td>
+                    <td>Vanilla HTML/CSS/JS (556 lines), drag-and-drop upload, karaoke playback, RTL word chips</td>
+                </tr>
+                <tr>
+                    <td class="layer-label">Backend</td>
+                    <td>Laravel 12, 10 Controllers, 9 Services, 8 Queue Jobs, Laravel Reverb (WebSocket)</td>
+                    <td>None (static site, all logic client-side)</td>
+                    <td>Flask 3.0 (development), Cloudflare Pages Function (production proxy, 122 lines)</td>
+                </tr>
+                <tr>
+                    <td class="layer-label">Processing</td>
+                    <td>8-processor text cleaning pipeline, 5 LLM providers, 3 ASR drivers, WER/CER calculator</td>
+                    <td>Python offline script (update_firstline.py, 98 lines), Hebrew character normalization</td>
+                    <td>stable-ts / faster-whisper, confusion-aware iterative alignment (285 lines), PyTorch 2.4.1, CUDA 12.1</td>
+                </tr>
+                <tr>
+                    <td class="layer-label">ML / AI</td>
+                    <td>YiddishLabs API, OpenAI Whisper, Local Whisper; Claude/GPT for LLM cleaning</td>
+                    <td>Confidence scoring algorithm (date + keyword matching)</td>
+                    <td>yi-whisper-large-v3-turbo-ct2 model (1.5GB, Yiddish fine-tuned), RunPod Serverless GPU</td>
+                </tr>
+                <tr>
+                    <td class="layer-label">Storage</td>
+                    <td>SQLite (25+ migrations), Spatie Media Library (local / S3)</td>
+                    <td>Static JSON (246KB), browser localStorage</td>
+                    <td>Temporary file system (RunPod), model baked into Docker image</td>
+                </tr>
+                <tr>
+                    <td class="layer-label">Hosting</td>
+                    <td>Self-hosted / VPS (Laravel app server)</td>
+                    <td>Cloudflare Pages (mapping.kohnai.ai), zero cost</td>
+                    <td>Cloudflare Pages (align.kohnai.ai) + RunPod Serverless (GPU), scale-to-zero</td>
+                </tr>
+                <tr>
+                    <td class="layer-label">External</td>
+                    <td>Google Drive, Google Sheets, OAuth 2.0, 5 LLM APIs, 3 ASR APIs</td>
+                    <td>Google Drive (shareable links)</td>
+                    <td>RunPod API (AMPERE 16GB GPU)</td>
+                </tr>
+                <tr>
+                    <td class="layer-label">DevOps</td>
+                    <td>GitHub, Pest 4 tests (17 tests), Laravel migrations</td>
+                    <td>GitHub, Wrangler CLI deploy (~4s)</td>
+                    <td>Docker (CUDA base), GitHub, 12 unit tests</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ 3. PIPELINES ═══════════════════════ -->
+<section id="pipelines">
+    <h2 class="collapsible" onclick="toggleSection(this)"><span class="section-num">03</span> Three Distinct Pipelines</h2>
+    <p class="section-subtitle">Benchmark, Training, and Publishing -- three workflows driving the platform forward.</p>
+    <div class="collapsible-content">
+
+    <!-- Pipeline A: Benchmark -->
+    <h3 style="font-size:1.15rem;margin:2rem 0 0.5rem;color:var(--accent-blue);">A. Benchmark Pipeline</h3>
+    <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:1rem;">Quality testing ASR models against gold standard files. Public leaderboard ranks models by WER, CER, and Custom WER.</p>
+
+    <div class="diagram">
+        <div class="diagram-title">Benchmark Pipeline Flow</div>
+        <div class="pipeline">
+            <div class="pipeline-step done">
+                <h5>Gold Standard</h5>
+                <p>7 curated audio files with validated reference transcriptions</p>
+            </div>
+            <div class="pipeline-arrow done"></div>
+            <div class="pipeline-step done">
+                <h5>Clean Reference</h5>
+                <p>8-processor pipeline or LLM removes non-spoken content</p>
+            </div>
+            <div class="pipeline-arrow done"></div>
+            <div class="pipeline-step done">
+                <h5>Validate Text</h5>
+                <p>Human review of diff, Clean Rate scoring (0-100)</p>
+            </div>
+            <div class="pipeline-arrow done"></div>
+            <div class="pipeline-step done">
+                <h5>Run ASR</h5>
+                <p>YiddishLabs, Whisper API, Local Whisper generate hypotheses</p>
+            </div>
+            <div class="pipeline-arrow done"></div>
+            <div class="pipeline-step done">
+                <h5>Calculate WER</h5>
+                <p>Levenshtein distance with Hebrew diacritic normalization</p>
+            </div>
+            <div class="pipeline-arrow done"></div>
+            <div class="pipeline-step done">
+                <h5>Word Review</h5>
+                <p>Mark critical errors vs. acceptable variants for Custom WER</p>
+            </div>
+            <div class="pipeline-arrow done"></div>
+            <div class="pipeline-step done">
+                <h5>Public Leaderboard</h5>
+                <p>/benchmark -- no auth, model comparison, Gold Standard subset</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline B: Training -->
+    <h3 style="font-size:1.15rem;margin:2rem 0 0.5rem;color:var(--accent-yellow);">B. Training Pipeline (50 Hours)</h3>
+    <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:1rem;">423 curated audio-transcript pairs flow through matching, cleaning, review, and approval before being sent for model training.</p>
+
+    <div class="diagram">
+        <div class="diagram-title">Training Pipeline Flow</div>
+        <div class="pipeline">
+            <div class="pipeline-step done">
+                <h5>Audio Discovery</h5>
+                <p>4,669 files on Google Drive spanning years 5711-5752</p>
+            </div>
+            <div class="pipeline-arrow done"></div>
+            <div class="pipeline-step done">
+                <h5>Mapping Match</h5>
+                <p>Confidence scoring matches audio to transcripts (1,809 pairs)</p>
+            </div>
+            <div class="pipeline-arrow done"></div>
+            <div class="pipeline-step done">
+                <h5>50hr Selection</h5>
+                <p>423 curated pairs selected for training data</p>
+            </div>
+            <div class="pipeline-arrow done"></div>
+            <div class="pipeline-step done">
+                <h5>Import to Cleaner</h5>
+                <p>Google Sheets batch import into Laravel system</p>
+            </div>
+            <div class="pipeline-arrow progress"></div>
+            <div class="pipeline-step progress">
+                <h5>Needs Cleaning</h5>
+                <p>Raw transcripts with editorial content, brackets, titles</p>
+            </div>
+            <div class="pipeline-arrow progress"></div>
+            <div class="pipeline-step progress">
+                <h5>Cleaned</h5>
+                <p>Rule-based or LLM cleaning applied and diff reviewed</p>
+            </div>
+            <div class="pipeline-arrow"></div>
+            <div class="pipeline-step planned">
+                <h5>Approved</h5>
+                <p>Human reviewer validates cleaned transcript</p>
+            </div>
+            <div class="pipeline-arrow"></div>
+            <div class="pipeline-step planned">
+                <h5>Sent for Training</h5>
+                <p>Exported to ASR model fine-tuning pipeline</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pipeline C: Publishing -->
+    <h3 style="font-size:1.15rem;margin:2rem 0 0.5rem;color:var(--accent-magenta);">C. Publishing Pipeline (Future)</h3>
+    <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:1rem;">Once models are trained, their output needs review and approval before public release.</p>
+
+    <div class="diagram">
+        <div class="diagram-title">Publishing Pipeline Flow (Planned)</div>
+        <div class="pipeline">
+            <div class="pipeline-step planned">
+                <h5>Model Output</h5>
+                <p>Trained model generates transcripts for new audio</p>
+            </div>
+            <div class="pipeline-arrow"></div>
+            <div class="pipeline-step planned">
+                <h5>Alignment</h5>
+                <p>Word-level timestamps via confusion-aware algorithm</p>
+            </div>
+            <div class="pipeline-arrow"></div>
+            <div class="pipeline-step planned">
+                <h5>QA Review</h5>
+                <p>Reviewers verify accuracy with karaoke playback</p>
+            </div>
+            <div class="pipeline-arrow"></div>
+            <div class="pipeline-step planned">
+                <h5>Approval</h5>
+                <p>Approved transcripts marked for public release</p>
+            </div>
+            <div class="pipeline-arrow"></div>
+            <div class="pipeline-step planned">
+                <h5>Public Release</h5>
+                <p>Timestamped, reviewed transcripts published</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clean Rate & WER detail cards -->
+    <h3 style="font-size:1.15rem;margin:2.5rem 0 1rem;color:var(--text-primary);">Pipeline Support Systems</h3>
+    <div class="cards">
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Text Cleaning Engine</h4>
+            <p>8 sequential processors handle Yiddish religious text normalization:</p>
+            <ul>
+                <li><strong>SpecialChars</strong> -- zero-width chars, smart quotes</li>
+                <li><strong>SeifMarker</strong> -- Hebrew section markers</li>
+                <li><strong>TitleStyle</strong> -- headings by style heuristics</li>
+                <li><strong>Brackets</strong> -- inline editorial [annotations]</li>
+                <li><strong>EditorialHebrew</strong> -- non-spoken scripture citations</li>
+                <li><strong>Parentheses</strong> -- (inaudible) markers</li>
+                <li><strong>ForceRemove</strong> -- user-configured patterns</li>
+                <li><strong>Whitespace</strong> -- spacing normalization</li>
+            </ul>
+            <p style="margin-top:0.75rem;">5 presets: minimal, titles_only, full_clean, with_editorial, heavy. Alternative: LLM-based cleaning via Claude, GPT, or Groq.</p>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Clean Rate Scoring</h4>
+            <p>Quality metric (0-100) evaluating how well cleaning was performed:</p>
+            <ul>
+                <li>9 penalty rules based on removal types</li>
+                <li>Global penalties for &gt;50% text reduction</li>
+                <li>Global penalties for &lt;50 words remaining</li>
+                <li>Ranges: Excellent (90-100), Good (75-89), Moderate (50-74), Low (25-49), Poor (0-24)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>WER / CER / Custom WER</h4>
+            <p>Three accuracy metrics for ASR evaluation:</p>
+            <ul>
+                <li><strong>WER</strong> -- word error rate via Levenshtein distance with Hebrew nikkud normalization</li>
+                <li><strong>CER</strong> -- character-level error rate</li>
+                <li><strong>Custom WER</strong> -- only counts "critical errors" (true mistakes), ignoring acceptable Yiddish spelling variants</li>
+            </ul>
+            <p style="margin-top:0.5rem;">Formula: Custom WER = (insertions + deletions + critical_replacements) / total_reference_words</p>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Confidence Matching</h4>
+            <p>Hybrid algorithm for audio-transcript pairing:</p>
+            <ul>
+                <li><strong>Date matching</strong> -- Hebrew calendar year, month, day comparison</li>
+                <li><strong>Keyword matching</strong> -- content type (Sicha, Maamar, Farbrengen)</li>
+                <li>Scores range 0.0 to 1.0; amber below 0.5, green above</li>
+                <li>Multiple ranked suggestions per unmatched item</li>
+                <li>Human verification with one-click accept</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Confusion-Aware Alignment</h4>
+            <p>Iterative algorithm for long-audio word-level alignment:</p>
+            <ul>
+                <li>120s sliding window with 30s hop monitors quality</li>
+                <li>Flags confusion zones when low-confidence ratio &gt; 0.8</li>
+                <li>BreakableAligner extends stable-ts Aligner class</li>
+                <li>Recovery: backtrack to high-confidence segment, retry (max 2)</li>
+                <li>Stitches segments with continuous timestamps</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Karaoke Playback</h4>
+            <p>Real-time word-level audio synchronization:</p>
+            <ul>
+                <li>HTML5 audio timeupdate drives word highlighting</li>
+                <li>Click any word chip to seek to that timestamp</li>
+                <li>Color coding: green (&ge;0.5), yellow (&ge;0.2), red (&lt;0.2) confidence</li>
+                <li>Pure JS implementation, zero dependencies</li>
+            </ul>
+        </div>
+    </div>
+
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ 4. DATA FLOW ═══════════════════════ -->
+<section id="data-flow">
+    <h2 class="collapsible" onclick="toggleSection(this)"><span class="section-num">04</span> Data Flow Architecture</h2>
+    <p class="section-subtitle">How audio files, transcripts, alignments, mappings, and confidence scores flow through the entire system.</p>
+    <div class="collapsible-content">
+
+    <div class="diagram">
+        <div class="diagram-title">End-to-End Data Flow</div>
+        <div class="flow-container">
+
+            <!-- Source -->
+            <div class="flow-row">
+                <div class="flow-box" style="border-color:var(--accent-purple);">
+                    <h5 style="color:var(--accent-purple);">Google Drive</h5>
+                    <p>4,669 audio (MP3)<br>1,065 transcripts (DOCX)</p>
+                </div>
+            </div>
+
+            <div class="flow-arrow-d"></div>
+
+            <!-- Split into 2 paths -->
+            <div class="flow-row" style="gap:4rem;">
+                <div class="flow-box" style="border-color:var(--accent-blue);">
+                    <h5 style="color:var(--accent-blue);">Mapping Tool</h5>
+                    <p>Hebrew date parsing<br>Confidence scoring<br>Manual verification</p>
+                </div>
+                <div class="flow-box" style="border-color:var(--accent-yellow);">
+                    <h5 style="color:var(--accent-yellow);">Google Sheets</h5>
+                    <p>Batch import specs<br>Audio URLs + Doc refs<br>Metadata tracking</p>
+                </div>
+            </div>
+
+            <div class="flow-arrow-d"></div>
+
+            <div class="flow-row">
+                <div class="flow-box" style="border-color:var(--accent-green);">
+                    <h5 style="color:var(--accent-green);">Matched Pairs (CSV)</h5>
+                    <p>1,809 verified pairs<br>423 selected for 50hr training<br>Audio name + Transcript name + Drive links</p>
+                </div>
+            </div>
+
+            <div class="flow-arrow-d"></div>
+
+            <div class="flow-row">
+                <div class="flow-box highlight" style="min-width:280px;">
+                    <h5 style="color:var(--accent-magenta);">Yiddish Cleaner (Laravel)</h5>
+                    <p>Import &rarr; Clean &rarr; Validate &rarr; Transcribe &rarr; Review</p>
+                </div>
+            </div>
+
+            <div class="flow-arrow-d"></div>
+
+            <!-- Two outputs -->
+            <div class="flow-row" style="gap:3rem;">
+                <div class="flow-box" style="border-color:var(--accent-orange);">
+                    <h5 style="color:var(--accent-orange);">Alignment Engine</h5>
+                    <p>Audio + cleaned transcript &rarr;<br>Word timestamps + confidence<br>via RunPod GPU</p>
+                </div>
+                <div class="flow-box" style="border-color:var(--accent-blue);">
+                    <h5 style="color:var(--accent-blue);">ASR Engines</h5>
+                    <p>Audio &rarr; hypothesis text<br>YiddishLabs, Whisper API,<br>Local Whisper</p>
+                </div>
+            </div>
+
+            <div class="flow-arrow-d"></div>
+
+            <div class="flow-row" style="gap:3rem;">
+                <div class="flow-box" style="border-color:var(--status-done);">
+                    <h5 style="color:var(--status-done);">Word-Level Review</h5>
+                    <p>Karaoke playback<br>Critical error marking<br>Custom WER calculation</p>
+                </div>
+                <div class="flow-box" style="border-color:var(--status-done);">
+                    <h5 style="color:var(--status-done);">Public Benchmark</h5>
+                    <p>Model leaderboard<br>WER/CER/Custom WER<br>Gold Standard results</p>
+                </div>
+            </div>
+
+            <div class="flow-arrow-d"></div>
+
+            <div class="flow-row">
+                <div class="flow-box" style="border-color:var(--status-planned);border-style:dashed;">
+                    <h5 style="color:var(--status-planned);">Training Export (Future)</h5>
+                    <p>Approved pairs exported for<br>ASR model fine-tuning</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Data format details -->
+    <div class="cards" style="margin-top:2rem;">
+        <div class="card">
+            <h4>Audio File Formats</h4>
+            <p>Supported input: MP3, WAV, M4A, OGG, FLAC. Audio is stored via Spatie Media Library in the Cleaner, sent as base64 to the Alignment engine, and referenced by Google Drive shareable link in the Mapping tool.</p>
+        </div>
+        <div class="card">
+            <h4>Transcript Formats</h4>
+            <p>Source documents are DOCX/DOC/TXT, parsed via PhpWord in the Cleaner. The Mapping tool stores 15-word Hebrew first-line previews. The Alignment engine receives plain text (RTL encoded).</p>
+        </div>
+        <div class="card">
+            <h4>Alignment Output</h4>
+            <p>Dual format: hierarchical segments (nested word objects with timestamps) and flat timestamp array. Each word includes: word, start, end, confidence. Model metadata and language designation included.</p>
+        </div>
+        <div class="card">
+            <h4>Mapping JSON</h4>
+            <p>Static 246KB JSON with 9 collections: allAudio[], allTranscripts[], selected[], matched[], unmatchedAudio[] (with suggestedMatches[]), unmatchedTranscripts[], and stats. Loads in under 500ms.</p>
+        </div>
+    </div>
+
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ 5. INTEGRATION ═══════════════════════ -->
+<section id="integration">
+    <h2 class="collapsible" onclick="toggleSection(this)"><span class="section-num">05</span> Integration Architecture</h2>
+    <p class="section-subtitle">How three separate repositories converge into the unified yiddish-cleaner platform.</p>
+    <div class="collapsible-content">
+
+    <div class="diagram">
+        <div class="diagram-title">Repository Convergence Plan</div>
+        <div class="merge-diagram">
+            <div class="merge-sources">
+                <div class="merge-box source-a">
+                    <h5 style="color:var(--accent-blue);">yiddish-mapping</h5>
+                    <p>Client-side matching SPA<br>Cloudflare Pages<br>620 lines JS</p>
+                </div>
+                <div class="merge-box source-b">
+                    <h5 style="color:var(--accent-yellow);">yiddish-audio-alignment</h5>
+                    <p>Python alignment engine<br>RunPod + Cloudflare<br>27 new files, additive branch</p>
+                </div>
+            </div>
+
+            <div class="merge-lines">
+                <div class="merge-line-l"></div>
+                <div class="merge-line-r"></div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0.5rem;">
+                <div style="font-size:0.75rem;color:var(--accent-green);font-weight:700;">MERGE INTO</div>
+                <div class="merge-box dest">
+                    <h5 style="color:var(--accent-green);">yiddish-cleaner</h5>
+                    <p>Unified platform<br>Laravel backend + Vue frontend<br>All pipelines in one system</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cards">
+        <div class="card">
+            <span class="card-tag yellow">In Progress</span>
+            <h4>Mapping Integration</h4>
+            <p>The mapping tool's matching logic will be absorbed into the Cleaner as a dedicated Vue page and Laravel controller:</p>
+            <ul>
+                <li>Static JSON replaced by database-backed audio/transcript inventory</li>
+                <li>localStorage matching replaced by server-side persistence</li>
+                <li>Confidence scoring algorithm ported to a MatchingService class</li>
+                <li>Hebrew date parsing becomes a shared utility</li>
+                <li>Export replaced by direct pipeline integration</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="card-tag yellow">In Progress</span>
+            <h4>Alignment Integration</h4>
+            <p>The alignment engine already integrates via the existing AlignmentManager service in the Cleaner:</p>
+            <ul>
+                <li>RunPod GPU backend remains external (serverless)</li>
+                <li>AlignTranscriptionJob triggers alignment via API proxy</li>
+                <li>Word timestamps stored in TranscriptionWord model</li>
+                <li>Karaoke playback rebuilt as Vue component</li>
+                <li>Cloudflare proxy (align.kohnai.ai) stays as API gateway</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Shared Infrastructure</h4>
+            <p>Components already shared across systems:</p>
+            <ul>
+                <li>Google Drive -- all audio and transcript source files</li>
+                <li>Google Sheets -- batch import metadata format</li>
+                <li>Hebrew date system -- common calendar parsing</li>
+                <li>RTL text handling -- Yiddish/Hebrew rendering</li>
+                <li>GitHub organization -- Abe1018776 namespace</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="card-tag red">Not Yet Built</span>
+            <h4>Unified Pipeline Automation</h4>
+            <p>End-to-end automation from discovery to training export:</p>
+            <ul>
+                <li>Auto-import new audio from Drive</li>
+                <li>Auto-suggest transcript matches using confidence algorithm</li>
+                <li>Batch cleaning with optimal preset selection</li>
+                <li>Auto-trigger alignment after cleaning approval</li>
+                <li>Training data export with metadata and timestamps</li>
+            </ul>
+        </div>
+    </div>
+
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ 6. API LAYER ═══════════════════════ -->
+<section id="api">
+    <h2 class="collapsible" onclick="toggleSection(this)"><span class="section-num">06</span> API &amp; Communication Layer</h2>
+    <p class="section-subtitle">How frontends communicate with backends and how processing is triggered across systems.</p>
+    <div class="collapsible-content">
+
+    <div class="cards">
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Cleaner: Inertia.js Pattern</h4>
+            <p>No traditional REST API. Laravel controllers return <code>Inertia::render('Page', $props)</code>. First load serves full HTML with embedded props; subsequent navigations fetch only JSON. Form submissions via <code>router.post()</code>.</p>
+            <ul>
+                <li>65+ routes in web.php</li>
+                <li>10 Inertia controllers for page rendering</li>
+                <li>3 JSON API controllers (ASR, LLM, Words)</li>
+                <li>Form request validation classes</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Cleaner: WebSocket Events</h4>
+            <p>Laravel Reverb broadcasts real-time events to the Vue frontend via Laravel Echo:</p>
+            <ul>
+                <li><code>AudioSampleProcessed</code> -- ASR job complete</li>
+                <li><code>BatchCompleted</code> -- import batch done</li>
+                <li><code>DocumentProcessed</code> -- transcript parsed</li>
+                <li>UI updates reactively without page refresh</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Alignment: API Proxy</h4>
+            <p>Cloudflare Pages Function (align.js, 122 lines) acts as API gateway:</p>
+            <div class="code-block">
+<span class="comment">// Production endpoint</span>
+<span class="kw">POST</span> <span class="str">https://align.kohnai.ai/api/align</span>
+
+<span class="comment">// Request body</span>
+{
+  <span class="str">"mode"</span>: <span class="str">"align"</span> | <span class="str">"transcribe"</span>,
+  <span class="str">"audio_base64"</span>: <span class="type">string</span>,
+  <span class="str">"audio_format"</span>: <span class="str">".mp3"</span>,
+  <span class="str">"text"</span>: <span class="type">string</span>,  <span class="comment">// align mode only</span>
+  <span class="str">"language"</span>: <span class="str">"yi"</span>
+}
+
+<span class="comment">// Response</span>
+{
+  <span class="str">"full_text"</span>: <span class="type">string</span>,
+  <span class="str">"segments"</span>: [{ <span class="fn">start</span>, <span class="fn">end</span>, <span class="fn">text</span>, <span class="fn">words</span>: [...] }],
+  <span class="str">"timestamps"</span>: [{ <span class="fn">word</span>, <span class="fn">start</span>, <span class="fn">end</span>, <span class="fn">confidence</span> }],
+  <span class="str">"model"</span>: <span class="str">"yi-whisper-large-v3-turbo-ct2"</span>
+}
+            </div>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>Alignment: Flask Dev Server</h4>
+            <p>Development endpoints for local testing:</p>
+            <div class="code-block">
+<span class="kw">POST</span> <span class="str">/api/alignment/align</span>
+<span class="kw">POST</span> <span class="str">/api/alignment/transcribe</span>
+<span class="kw">GET</span>  <span class="str">/api/alignment/health</span>
+            </div>
+            <p style="margin-top:0.5rem;">Flask Blueprint routes to either local processing or RunPod backend depending on configuration.</p>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>External ASR APIs</h4>
+            <p>Three ASR drivers abstracted behind AsrManager factory:</p>
+            <ul>
+                <li><strong>YiddishLabsDriver</strong> -- async API with polling, Yiddish-specific</li>
+                <li><strong>WhisperDriver</strong> -- OpenAI Whisper API, segment timestamps</li>
+                <li><strong>LocalWhisperDriver</strong> -- local Python via shell script</li>
+            </ul>
+        </div>
+        <div class="card">
+            <span class="card-tag green">Implemented</span>
+            <h4>External LLM APIs</h4>
+            <p>Five LLM providers for AI-based transcript cleaning, managed by LlmManager:</p>
+            <ul>
+                <li>OpenRouter, Anthropic (Claude), OpenAI (GPT)</li>
+                <li>Google AI (Gemini), Groq</li>
+                <li>Yiddish-specific cleaning prompts preserve original wording</li>
+                <li>Encrypted API keys stored per-user in ApiCredential model</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Communication diagram -->
+    <div class="diagram" style="margin-top:2rem;">
+        <div class="diagram-title">System Communication Map</div>
+        <div class="sys-overview" style="gap:1.5rem;">
+            <div class="sys-row">
+                <div class="sys-box" style="min-width:200px;max-width:200px;text-align:center;">
+                    <h4 style="justify-content:center;font-size:0.85rem;">Browser (Vue 3)</h4>
+                    <p>User interface</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem;">
+                    <div class="arrow-bidirectional" style="width:80px;"></div>
+                    <span class="arrow-label">Inertia.js</span>
+                </div>
+                <div class="sys-box" style="min-width:200px;max-width:200px;text-align:center;">
+                    <h4 style="justify-content:center;font-size:0.85rem;">Laravel App</h4>
+                    <p>Controllers + Services</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem;">
+                    <div class="arrow-bidirectional" style="width:80px;"></div>
+                    <span class="arrow-label">Queue Jobs</span>
+                </div>
+                <div class="sys-box" style="min-width:200px;max-width:200px;text-align:center;">
+                    <h4 style="justify-content:center;font-size:0.85rem;">External APIs</h4>
+                    <p>ASR, LLM, Google</p>
+                </div>
+            </div>
+            <div class="sys-row" style="margin-top:0.5rem;">
+                <div class="sys-box" style="min-width:200px;max-width:200px;text-align:center;">
+                    <h4 style="justify-content:center;font-size:0.85rem;">Alignment Frontend</h4>
+                    <p>align.kohnai.ai</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem;">
+                    <div class="arrow-bidirectional" style="width:80px;"></div>
+                    <span class="arrow-label">HTTPS POST</span>
+                </div>
+                <div class="sys-box" style="min-width:200px;max-width:200px;text-align:center;">
+                    <h4 style="justify-content:center;font-size:0.85rem;">CF Pages Function</h4>
+                    <p>API proxy (align.js)</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem;">
+                    <div class="arrow-bidirectional" style="width:80px;"></div>
+                    <span class="arrow-label">RunPod SDK</span>
+                </div>
+                <div class="sys-box" style="min-width:200px;max-width:200px;text-align:center;">
+                    <h4 style="justify-content:center;font-size:0.85rem;">RunPod GPU</h4>
+                    <p>Docker + CUDA</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ 7. DATABASE SCHEMA ═══════════════════════ -->
+<section id="schema">
+    <h2 class="collapsible" onclick="toggleSection(this)"><span class="section-num">07</span> Database Schema</h2>
+    <p class="section-subtitle">Key entities across the unified platform -- SQLite with 25+ migrations in the Cleaner, static JSON in Mapping.</p>
+    <div class="collapsible-content">
+
+    <div class="schema-grid">
+        <!-- AudioSample -->
+        <div class="entity">
+            <div class="entity-header" style="background:rgba(255,68,68,0.08);">
+                <span class="dot" style="background:var(--accent-magenta);"></span>
+                AudioSample
+                <span class="status done" style="margin-left:auto;">Cleaner</span>
+            </div>
+            <div class="entity-body">
+                <div class="entity-field pk"><span class="fname">id</span><span class="ftype">bigint PK</span></div>
+                <div class="entity-field fk"><span class="fname">user_id</span><span class="ftype">FK &rarr; users</span></div>
+                <div class="entity-field"><span class="fname">name</span><span class="ftype">string</span></div>
+                <div class="entity-field"><span class="fname">duration</span><span class="ftype">float (seconds)</span></div>
+                <div class="entity-field"><span class="fname">status</span><span class="ftype">enum: new|in_progress|review|done</span></div>
+                <div class="entity-field"><span class="fname">google_drive_url</span><span class="ftype">string nullable</span></div>
+                <div class="entity-field"><span class="fname">media</span><span class="ftype">Spatie Media Library</span></div>
+            </div>
+        </div>
+
+        <!-- Transcription -->
+        <div class="entity">
+            <div class="entity-header" style="background:rgba(0,212,255,0.08);">
+                <span class="dot" style="background:var(--accent-blue);"></span>
+                Transcription
+                <span class="status done" style="margin-left:auto;">Cleaner</span>
+            </div>
+            <div class="entity-body">
+                <div class="entity-field pk"><span class="fname">id</span><span class="ftype">bigint PK</span></div>
+                <div class="entity-field"><span class="fname">type</span><span class="ftype">enum: base|hypothesis</span></div>
+                <div class="entity-field"><span class="fname">original_text</span><span class="ftype">longtext</span></div>
+                <div class="entity-field"><span class="fname">cleaned_text</span><span class="ftype">longtext nullable</span></div>
+                <div class="entity-field"><span class="fname">cleaning_method</span><span class="ftype">string</span></div>
+                <div class="entity-field"><span class="fname">clean_rate</span><span class="ftype">float (0-100)</span></div>
+                <div class="entity-field"><span class="fname">wer</span><span class="ftype">float nullable</span></div>
+                <div class="entity-field"><span class="fname">cer</span><span class="ftype">float nullable</span></div>
+                <div class="entity-field"><span class="fname">custom_wer</span><span class="ftype">float nullable</span></div>
+                <div class="entity-field"><span class="fname">asr_provider</span><span class="ftype">string nullable</span></div>
+            </div>
+        </div>
+
+        <!-- TranscriptionWord -->
+        <div class="entity">
+            <div class="entity-header" style="background:rgba(0,255,136,0.08);">
+                <span class="dot" style="background:var(--accent-green);"></span>
+                TranscriptionWord
+                <span class="status done" style="margin-left:auto;">Cleaner</span>
+            </div>
+            <div class="entity-body">
+                <div class="entity-field pk"><span class="fname">id</span><span class="ftype">bigint PK</span></div>
+                <div class="entity-field fk"><span class="fname">transcription_id</span><span class="ftype">FK &rarr; transcriptions</span></div>
+                <div class="entity-field"><span class="fname">word</span><span class="ftype">string</span></div>
+                <div class="entity-field"><span class="fname">start</span><span class="ftype">float (seconds)</span></div>
+                <div class="entity-field"><span class="fname">end</span><span class="ftype">float (seconds)</span></div>
+                <div class="entity-field"><span class="fname">confidence</span><span class="ftype">float (0-1)</span></div>
+                <div class="entity-field"><span class="fname">reference_word</span><span class="ftype">string nullable</span></div>
+                <div class="entity-field"><span class="fname">is_critical_error</span><span class="ftype">boolean</span></div>
+            </div>
+        </div>
+
+        <!-- ProcessingRun -->
+        <div class="entity">
+            <div class="entity-header" style="background:rgba(255,204,0,0.08);">
+                <span class="dot" style="background:var(--accent-yellow);"></span>
+                ProcessingRun
+                <span class="status done" style="margin-left:auto;">Cleaner</span>
+            </div>
+            <div class="entity-body">
+                <div class="entity-field pk"><span class="fname">id</span><span class="ftype">bigint PK</span></div>
+                <div class="entity-field fk"><span class="fname">user_id</span><span class="ftype">FK &rarr; users</span></div>
+                <div class="entity-field"><span class="fname">source_type</span><span class="ftype">string</span></div>
+                <div class="entity-field"><span class="fname">status</span><span class="ftype">enum: pending|running|completed|failed</span></div>
+                <div class="entity-field"><span class="fname">total_items</span><span class="ftype">integer</span></div>
+                <div class="entity-field"><span class="fname">processed_count</span><span class="ftype">integer</span></div>
+                <div class="entity-field"><span class="fname">failed_count</span><span class="ftype">integer</span></div>
+            </div>
+        </div>
+
+        <!-- ApiCredential -->
+        <div class="entity">
+            <div class="entity-header" style="background:rgba(179,102,255,0.08);">
+                <span class="dot" style="background:var(--accent-purple);"></span>
+                ApiCredential
+                <span class="status done" style="margin-left:auto;">Cleaner</span>
+            </div>
+            <div class="entity-body">
+                <div class="entity-field pk"><span class="fname">id</span><span class="ftype">bigint PK</span></div>
+                <div class="entity-field fk"><span class="fname">user_id</span><span class="ftype">FK &rarr; users</span></div>
+                <div class="entity-field"><span class="fname">provider</span><span class="ftype">string</span></div>
+                <div class="entity-field"><span class="fname">api_key</span><span class="ftype">encrypted string</span></div>
+                <div class="entity-field"><span class="fname">is_active</span><span class="ftype">boolean</span></div>
+            </div>
+        </div>
+
+        <!-- Mapping Data (JSON) -->
+        <div class="entity">
+            <div class="entity-header" style="background:rgba(0,212,255,0.08);">
+                <span class="dot" style="background:var(--accent-blue);"></span>
+                Mapping Data (JSON)
+                <span class="status done" style="margin-left:auto;">Mapping</span>
+            </div>
+            <div class="entity-body">
+                <div class="entity-field"><span class="fname">allAudio[]</span><span class="ftype">4,669 entries</span></div>
+                <div class="entity-field"><span class="fname">allTranscripts[]</span><span class="ftype">1,065 entries</span></div>
+                <div class="entity-field"><span class="fname">matched[]</span><span class="ftype">1,809 pairs</span></div>
+                <div class="entity-field"><span class="fname">selected[]</span><span class="ftype">423 pairs</span></div>
+                <div class="entity-field"><span class="fname">unmatchedAudio[]</span><span class="ftype">2,860 + suggestions</span></div>
+                <div class="entity-field"><span class="fname">unmatchedTranscripts[]</span><span class="ftype">447 + suggestions</span></div>
+                <div class="entity-field"><span class="fname">stats</span><span class="ftype">aggregate counts</span></div>
+            </div>
+        </div>
+
+        <!-- Planned: Mapping DB Entity -->
+        <div class="entity" style="border-style:dashed;">
+            <div class="entity-header" style="background:rgba(255,68,102,0.08);">
+                <span class="dot" style="background:var(--status-planned);"></span>
+                AudioMapping (Planned)
+                <span class="status planned" style="margin-left:auto;">Unified</span>
+            </div>
+            <div class="entity-body">
+                <div class="entity-field pk"><span class="fname">id</span><span class="ftype">bigint PK</span></div>
+                <div class="entity-field fk"><span class="fname">audio_sample_id</span><span class="ftype">FK &rarr; audio_samples</span></div>
+                <div class="entity-field fk"><span class="fname">transcription_id</span><span class="ftype">FK &rarr; transcriptions</span></div>
+                <div class="entity-field"><span class="fname">confidence_score</span><span class="ftype">float (0-1)</span></div>
+                <div class="entity-field"><span class="fname">match_reason</span><span class="ftype">string</span></div>
+                <div class="entity-field"><span class="fname">verified_by</span><span class="ftype">FK &rarr; users nullable</span></div>
+                <div class="entity-field"><span class="fname">hebrew_date</span><span class="ftype">string</span></div>
+                <div class="entity-field"><span class="fname">pipeline_stage</span><span class="ftype">enum</span></div>
+            </div>
+        </div>
+
+        <!-- Planned: Benchmark Set -->
+        <div class="entity" style="border-style:dashed;">
+            <div class="entity-header" style="background:rgba(255,68,102,0.08);">
+                <span class="dot" style="background:var(--status-planned);"></span>
+                BenchmarkSet (Planned)
+                <span class="status planned" style="margin-left:auto;">Unified</span>
+            </div>
+            <div class="entity-body">
+                <div class="entity-field pk"><span class="fname">id</span><span class="ftype">bigint PK</span></div>
+                <div class="entity-field"><span class="fname">name</span><span class="ftype">string</span></div>
+                <div class="entity-field"><span class="fname">description</span><span class="ftype">text</span></div>
+                <div class="entity-field"><span class="fname">is_gold_standard</span><span class="ftype">boolean</span></div>
+                <div class="entity-field"><span class="fname">audio_samples</span><span class="ftype">M2M pivot</span></div>
+                <div class="entity-field"><span class="fname">created_at</span><span class="ftype">timestamp</span></div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ 8. INFRASTRUCTURE ═══════════════════════ -->
+<section id="infra">
+    <h2 class="collapsible" onclick="toggleSection(this)"><span class="section-num">08</span> Infrastructure &amp; Deployment</h2>
+    <p class="section-subtitle">Hosting, CI/CD, external services, and operational architecture.</p>
+    <div class="collapsible-content">
+
+    <div class="infra-grid">
+        <div class="infra-box">
+            <h4><span style="color:var(--accent-magenta);">&#9632;</span> Yiddish Cleaner</h4>
+            <ul>
+                <li>Self-hosted / VPS deployment</li>
+                <li>Laravel 12 application server</li>
+                <li>SQLite database (file-based)</li>
+                <li>Laravel Queue worker for async jobs</li>
+                <li>Laravel Reverb WebSocket server</li>
+                <li>Spatie Media Library (local / S3)</li>
+                <li>GitHub repository (Abe1018776)</li>
+                <li>Pest 4 test suite (17 tests)</li>
+                <li>25+ database migrations</li>
+            </ul>
+        </div>
+        <div class="infra-box">
+            <h4><span style="color:var(--accent-blue);">&#9632;</span> Audio-Text Mapping</h4>
+            <ul>
+                <li>Cloudflare Pages (mapping.kohnai.ai)</li>
+                <li>Static site -- zero server compute</li>
+                <li>Global CDN with automatic HTTPS</li>
+                <li>Wrangler CLI deployment (~4 seconds)</li>
+                <li>Static JSON data file (246KB)</li>
+                <li>No build step, no npm dependencies</li>
+                <li>GitHub repository (Abe1018776)</li>
+                <li>Python offline processing scripts</li>
+                <li>Zero ongoing hosting cost</li>
+            </ul>
+        </div>
+        <div class="infra-box">
+            <h4><span style="color:var(--accent-yellow);">&#9632;</span> Audio Alignment</h4>
+            <ul>
+                <li>Cloudflare Pages (align.kohnai.ai)</li>
+                <li>Pages Function API proxy (align.js)</li>
+                <li>RunPod Serverless GPU backend</li>
+                <li>Docker: PyTorch 2.4.1 + CUDA 12.1</li>
+                <li>AMPERE 16GB GPU (A4000/L4/A100)</li>
+                <li>Scale-to-zero (0 min workers)</li>
+                <li>10-second idle timeout</li>
+                <li>1.5GB model baked into Docker image</li>
+                <li>Cold start: ~2.5 min; warm: &lt;1s</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Deployment flow -->
+    <div class="diagram" style="margin-top:2rem;">
+        <div class="diagram-title">Deployment Architecture</div>
+        <div class="sys-overview" style="gap:1.5rem;">
+            <div class="sys-row">
+                <div class="sys-box" style="text-align:center;max-width:180px;min-width:150px;">
+                    <h4 style="justify-content:center;font-size:0.8rem;">Developer</h4>
+                    <p>Code changes</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;">
+                    <div class="arrow-horizontal" style="width:60px;"></div>
+                    <span class="arrow-label">git push</span>
+                </div>
+                <div class="sys-box" style="text-align:center;max-width:180px;min-width:150px;">
+                    <h4 style="justify-content:center;font-size:0.8rem;">GitHub</h4>
+                    <p>3 repositories</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;">
+                    <div class="arrow-horizontal" style="width:60px;"></div>
+                    <span class="arrow-label">deploy</span>
+                </div>
+                <div class="sys-box" style="text-align:center;max-width:180px;min-width:150px;border-color:var(--accent-blue);">
+                    <h4 style="justify-content:center;font-size:0.8rem;">Cloudflare</h4>
+                    <p>Pages + Functions</p>
+                </div>
+            </div>
+
+            <div class="sys-row" style="margin-top:1rem;">
+                <div class="sys-box" style="text-align:center;max-width:180px;min-width:150px;">
+                    <h4 style="justify-content:center;font-size:0.8rem;">Google Drive</h4>
+                    <p>Source files</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;">
+                    <div class="arrow-horizontal" style="width:60px;"></div>
+                    <span class="arrow-label">OAuth / links</span>
+                </div>
+                <div class="sys-box" style="text-align:center;max-width:180px;min-width:150px;border-color:var(--accent-magenta);">
+                    <h4 style="justify-content:center;font-size:0.8rem;">Laravel Server</h4>
+                    <p>App + Queue + WS</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;">
+                    <div class="arrow-horizontal" style="width:60px;"></div>
+                    <span class="arrow-label">API calls</span>
+                </div>
+                <div class="sys-box" style="text-align:center;max-width:180px;min-width:150px;border-color:var(--accent-yellow);">
+                    <h4 style="justify-content:center;font-size:0.8rem;">RunPod GPU</h4>
+                    <p>Docker + CUDA</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External services -->
+    <h3 style="font-size:1.1rem;margin:2.5rem 0 1rem;color:var(--text-primary);">External Service Dependencies</h3>
+    <div class="cards">
+        <div class="card">
+            <h4>Google Services</h4>
+            <ul>
+                <li><strong>Google Drive</strong> -- audio and transcript file storage with shareable links</li>
+                <li><strong>Google Sheets</strong> -- batch import specification format</li>
+                <li><strong>OAuth 2.0</strong> -- authenticated access managed by GoogleAuthService</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4>ASR Providers</h4>
+            <ul>
+                <li><strong>YiddishLabs</strong> -- Yiddish-specific ASR with async polling</li>
+                <li><strong>OpenAI Whisper</strong> -- general-purpose with segment timestamps</li>
+                <li><strong>Local Whisper</strong> -- self-hosted Python installation</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4>LLM Providers</h4>
+            <ul>
+                <li><strong>Anthropic</strong> -- Claude for transcript cleaning</li>
+                <li><strong>OpenAI</strong> -- GPT models for cleaning</li>
+                <li><strong>OpenRouter</strong> -- multi-model routing</li>
+                <li><strong>Google AI</strong> -- Gemini models</li>
+                <li><strong>Groq</strong> -- fast inference</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4>Infrastructure Providers</h4>
+            <ul>
+                <li><strong>Cloudflare</strong> -- Pages hosting, CDN, HTTPS, Pages Functions</li>
+                <li><strong>RunPod</strong> -- serverless GPU compute (AMPERE 16GB)</li>
+                <li><strong>GitHub</strong> -- source control, 3 repositories</li>
+            </ul>
+        </div>
+    </div>
+
+    </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+<footer>
+    <p style="margin-bottom:0.5rem;">
+        <strong>Yiddish ASR Platform</strong> -- Unified Architecture Documentation
+    </p>
+    <p>
+        <a href="https://github.com/Abe1018776/yiddish-cleaner">yiddish-cleaner</a> &middot;
+        <a href="https://github.com/Abe1018776/yiddish-mapping">yiddish-mapping</a> &middot;
+        <a href="https://github.com/Abe1018776/yiddish-audio-alignment">yiddish-audio-alignment</a>
+    </p>
+    <p style="margin-top:1rem; color:var(--text-muted);">
+        Generated February 2026. Three systems, one mission: accurate Yiddish speech recognition.
+    </p>
+</footer>
+
+<!-- ═══════════════════════ JAVASCRIPT ═══════════════════════ -->
+<script>
+// ─── Collapsible Sections ───
+function toggleSection(el) {
+    const content = el.nextElementSibling;
+    while (content && !content.classList.contains('section-subtitle')) {
+        if (content.classList.contains('collapsible-content')) {
+            break;
+        }
+        content = content.nextElementSibling;
+    }
+    // Find the actual collapsible-content which may be after the subtitle
+    let target = el.parentElement.querySelector('.collapsible-content');
+    if (!target) return;
+
+    el.classList.toggle('collapsed');
+    target.classList.toggle('hidden');
+}
+
+// ─── Smooth Scroll ───
+document.querySelectorAll('nav a').forEach(link => {
+    link.addEventListener('click', function(e) {
+        const href = this.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            e.preventDefault();
+            const target = document.querySelector(href);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    });
+});
+
+// ─── Active Nav Highlight ───
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('nav a');
+
+function updateActiveNav() {
+    let current = '';
+    sections.forEach(section => {
+        const sectionTop = section.offsetTop - 120;
+        if (window.scrollY >= sectionTop) {
+            current = section.getAttribute('id');
+        }
+    });
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + current) {
+            link.classList.add('active');
+        }
+    });
+}
+
+window.addEventListener('scroll', updateActiveNav);
+window.addEventListener('load', updateActiveNav);
+
+// ─── Animate On Scroll ───
+const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+        }
+    });
+}, observerOptions);
+
+document.querySelectorAll('.card, .entity, .sys-box, .infra-box, .pipeline-step').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(15px)';
+    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    observer.observe(el);
+});
+</script>
+
+</body>
+</html>
