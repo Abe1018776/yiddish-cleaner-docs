@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yiddish ASR Benchmark - Architecture & User Journey</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #22223a;
+            --accent-blue: #00d4ff;
+            --accent-magenta: #ff006e;
+            --accent-green: #00ff88;
+            --accent-yellow: #ffcc00;
+            --accent-orange: #ff8c00;
+            --accent-purple: #b366ff;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8888aa;
+            --text-muted: #555577;
+            --border: #2a2a44;
+            --border-glow: rgba(0, 212, 255, 0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ─── NAV ─── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(10, 10, 15, 0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+        }
+        nav ul {
+            display: flex; gap: 0.25rem; list-style: none;
+            max-width: 1400px; margin: 0 auto;
+            overflow-x: auto; scrollbar-width: none;
+        }
+        nav ul::-webkit-scrollbar { display: none; }
+        nav a {
+            display: block; padding: 0.85rem 1rem;
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 0.8rem; font-weight: 500;
+            white-space: nowrap; transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        nav a:hover, nav a.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        /* ─── HERO ─── */
+        .hero {
+            padding: 8rem 2rem 4rem;
+            text-align: center;
+            background: radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 70%);
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-magenta));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+        .hero p {
+            font-size: 1.15rem; color: var(--text-secondary);
+            max-width: 700px; margin: 0 auto 2rem;
+        }
+        .hero-badges {
+            display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;
+        }
+        .badge {
+            padding: 0.35rem 0.85rem; border-radius: 100px;
+            font-size: 0.75rem; font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+        }
+        .badge.laravel { color: #ff4444; border-color: rgba(255,68,68,0.3); }
+        .badge.vue { color: #42b883; border-color: rgba(66,184,131,0.3); }
+        .badge.inertia { color: var(--accent-purple); border-color: rgba(179,102,255,0.3); }
+        .badge.tailwind { color: #38bdf8; border-color: rgba(56,189,248,0.3); }
+        .badge.sqlite { color: #00a0d6; border-color: rgba(0,160,214,0.3); }
+
+        /* ─── SECTIONS ─── */
+        section {
+            max-width: 1400px; margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+        section h2 {
+            font-size: 1.8rem; font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        section h2 .num {
+            color: var(--accent-blue); font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.9rem; margin-right: 0.5rem;
+        }
+        section > p.subtitle {
+            color: var(--text-secondary); margin-bottom: 2.5rem;
+            font-size: 0.95rem;
+        }
+
+        /* ─── CARDS ─── */
+        .card-grid {
+            display: grid; gap: 1.25rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1.5rem;
+            transition: all 0.25s;
+        }
+        .card:hover {
+            border-color: var(--border-glow);
+            box-shadow: 0 0 30px rgba(0,212,255,0.06);
+            transform: translateY(-2px);
+        }
+        .card-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; margin-bottom: 1rem;
+        }
+        .card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .card p { font-size: 0.85rem; color: var(--text-secondary); }
+        .card code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; color: var(--accent-blue);
+            background: rgba(0,212,255,0.08);
+            padding: 0.15rem 0.4rem; border-radius: 4px;
+        }
+
+        /* ─── ARCHITECTURE DIAGRAM ─── */
+        .arch-diagram {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        .arch-layer {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            position: relative;
+        }
+        .arch-layer::before {
+            content: attr(data-label);
+            position: absolute; top: -0.75rem; left: 1.5rem;
+            background: var(--bg-primary); padding: 0 0.75rem;
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .layer-blue::before { color: var(--accent-blue); }
+        .layer-green::before { color: var(--accent-green); }
+        .layer-magenta::before { color: var(--accent-magenta); }
+        .layer-yellow::before { color: var(--accent-yellow); }
+        .layer-purple::before { color: var(--accent-purple); }
+        .layer-orange::before { color: var(--accent-orange); }
+
+        .arch-items {
+            display: flex; gap: 0.75rem; flex-wrap: wrap;
+        }
+        .arch-item {
+            padding: 0.6rem 1rem; border-radius: 8px;
+            font-size: 0.8rem; font-weight: 500;
+            border: 1px solid;
+        }
+        .item-blue { color: var(--accent-blue); border-color: rgba(0,212,255,0.25); background: rgba(0,212,255,0.06); }
+        .item-green { color: var(--accent-green); border-color: rgba(0,255,136,0.25); background: rgba(0,255,136,0.06); }
+        .item-magenta { color: var(--accent-magenta); border-color: rgba(255,0,110,0.25); background: rgba(255,0,110,0.06); }
+        .item-yellow { color: var(--accent-yellow); border-color: rgba(255,204,0,0.25); background: rgba(255,204,0,0.06); }
+        .item-purple { color: var(--accent-purple); border-color: rgba(179,102,255,0.25); background: rgba(179,102,255,0.06); }
+        .item-orange { color: var(--accent-orange); border-color: rgba(255,140,0,0.25); background: rgba(255,140,0,0.06); }
+
+        .arch-arrow {
+            text-align: center; font-size: 1.5rem;
+            color: var(--text-muted); margin: -0.75rem 0;
+        }
+
+        /* ─── FLOW DIAGRAM ─── */
+        .flow-container {
+            display: flex; flex-direction: column; gap: 0;
+            align-items: center;
+        }
+        .flow-step {
+            display: flex; align-items: center; gap: 1.25rem;
+            width: 100%; max-width: 900px;
+        }
+        .flow-num {
+            width: 48px; height: 48px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 1rem; flex-shrink: 0;
+        }
+        .flow-content {
+            flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1.25rem 1.5rem;
+        }
+        .flow-content h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.35rem; }
+        .flow-content p { font-size: 0.82rem; color: var(--text-secondary); }
+        .flow-connector {
+            width: 2px; height: 28px; margin-left: 23px;
+        }
+
+        .flow-blue .flow-num { background: rgba(0,212,255,0.15); color: var(--accent-blue); border: 2px solid rgba(0,212,255,0.3); }
+        .flow-blue .flow-connector { background: linear-gradient(to bottom, rgba(0,212,255,0.3), rgba(0,212,255,0.1)); }
+        .flow-green .flow-num { background: rgba(0,255,136,0.15); color: var(--accent-green); border: 2px solid rgba(0,255,136,0.3); }
+        .flow-green .flow-connector { background: linear-gradient(to bottom, rgba(0,255,136,0.3), rgba(0,255,136,0.1)); }
+        .flow-magenta .flow-num { background: rgba(255,0,110,0.15); color: var(--accent-magenta); border: 2px solid rgba(255,0,110,0.3); }
+        .flow-magenta .flow-connector { background: linear-gradient(to bottom, rgba(255,0,110,0.3), rgba(255,0,110,0.1)); }
+        .flow-yellow .flow-num { background: rgba(255,204,0,0.15); color: var(--accent-yellow); border: 2px solid rgba(255,204,0,0.3); }
+        .flow-yellow .flow-connector { background: linear-gradient(to bottom, rgba(255,204,0,0.3), rgba(255,204,0,0.1)); }
+        .flow-purple .flow-num { background: rgba(179,102,255,0.15); color: var(--accent-purple); border: 2px solid rgba(179,102,255,0.3); }
+        .flow-purple .flow-connector { background: linear-gradient(to bottom, rgba(179,102,255,0.3), rgba(179,102,255,0.1)); }
+        .flow-orange .flow-num { background: rgba(255,140,0,0.15); color: var(--accent-orange); border: 2px solid rgba(255,140,0,0.3); }
+        .flow-orange .flow-connector { background: linear-gradient(to bottom, rgba(255,140,0,0.3), rgba(255,140,0,0.1)); }
+
+        /* ─── PIPELINE VIS ─── */
+        .pipeline {
+            display: flex; align-items: center; gap: 0;
+            overflow-x: auto; padding: 1rem 0;
+        }
+        .pipe-stage {
+            min-width: 130px; padding: 0.75rem 1rem;
+            border-radius: 8px; text-align: center;
+            font-size: 0.75rem; font-weight: 600;
+            flex-shrink: 0;
+        }
+        .pipe-arrow {
+            color: var(--text-muted); font-size: 1.2rem; flex-shrink: 0;
+            padding: 0 0.25rem;
+        }
+
+        /* ─── TABLE ─── */
+        .info-table {
+            width: 100%; border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .info-table th, .info-table td {
+            padding: 0.75rem 1rem; text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .info-table th {
+            color: var(--text-muted); font-weight: 600;
+            font-size: 0.7rem; text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .info-table td { color: var(--text-secondary); }
+        .info-table td:first-child { color: var(--text-primary); font-weight: 500; }
+        .info-table code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem; color: var(--accent-blue);
+            background: rgba(0,212,255,0.08);
+            padding: 0.1rem 0.35rem; border-radius: 3px;
+        }
+
+        /* ─── STATUS WORKFLOW ─── */
+        .status-flow {
+            display: flex; align-items: center; gap: 0.5rem;
+            flex-wrap: wrap; justify-content: center;
+            margin: 1rem 0;
+        }
+        .status-badge {
+            padding: 0.5rem 1.2rem; border-radius: 100px;
+            font-size: 0.8rem; font-weight: 600;
+            border: 2px solid;
+        }
+        .status-arrow { color: var(--text-muted); font-size: 1.3rem; }
+
+        /* ─── TREE VIEW ─── */
+        .tree {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.78rem; line-height: 1.8;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1.5rem 2rem;
+            overflow-x: auto;
+            color: var(--text-secondary);
+        }
+        .tree .dir { color: var(--accent-blue); font-weight: 600; }
+        .tree .file { color: var(--text-secondary); }
+        .tree .comment { color: var(--text-muted); font-style: italic; }
+
+        /* ─── TWO COL ─── */
+        .two-col {
+            display: grid; gap: 1.5rem;
+            grid-template-columns: 1fr 1fr;
+        }
+        @media (max-width: 768px) {
+            .two-col { grid-template-columns: 1fr; }
+        }
+
+        /* ─── SEPARATOR ─── */
+        .sep {
+            border: none; border-top: 1px solid var(--border);
+            margin: 0;
+        }
+
+        /* ─── ER DIAGRAM ─── */
+        .er-grid {
+            display: grid; gap: 1.25rem;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+        .er-entity {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+        }
+        .er-entity-header {
+            padding: 0.75rem 1rem; font-weight: 700; font-size: 0.85rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .er-entity-body {
+            padding: 0.75rem 1rem;
+        }
+        .er-field {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.2rem 0; font-size: 0.75rem;
+        }
+        .er-field-name { color: var(--text-primary); }
+        .er-field-type { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; }
+        .er-field.pk .er-field-name { color: var(--accent-yellow); }
+        .er-field.fk .er-field-name { color: var(--accent-blue); }
+        .er-field.rel .er-field-name { color: var(--accent-magenta); font-style: italic; }
+
+        /* ─── METRIC CARDS ─── */
+        .metric-cards { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .metric-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 1.25rem;
+            min-width: 180px; flex: 1;
+        }
+        .metric-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+        .metric-value { font-size: 1.5rem; font-weight: 800; }
+        .metric-detail { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; }
+
+        /* ─── TECH STACK VISUAL ─── */
+        .tech-grid {
+            display: grid; gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+        .tech-item {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 10px; padding: 1rem 1.25rem;
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+        .tech-item .tech-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.85rem;
+        }
+        .tech-item .tech-name { font-size: 0.85rem; font-weight: 600; }
+        .tech-item .tech-role { font-size: 0.72rem; color: var(--text-secondary); }
+
+        /* ─── FOOTER ─── */
+        footer {
+            text-align: center; padding: 3rem 2rem;
+            color: var(--text-muted); font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+        }
+        footer a { color: var(--accent-blue); text-decoration: none; }
+
+        /* ─── SCROLL OFFSET ─── */
+        section[id] { scroll-margin-top: 4rem; }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- NAV -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<nav>
+    <ul>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#tech-stack">Tech Stack</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#directory">Directory</a></li>
+        <li><a href="#data-models">Data Models</a></li>
+        <li><a href="#user-journey">User Journey</a></li>
+        <li><a href="#cleaning">Cleaning Pipeline</a></li>
+        <li><a href="#asr">ASR & WER</a></li>
+        <li><a href="#benchmark">Benchmark</a></li>
+        <li><a href="#services">Services</a></li>
+        <li><a href="#frontend">Frontend</a></li>
+        <li><a href="#pages">Pages</a></li>
+        <li><a href="#queue">Queue Jobs</a></li>
+        <li><a href="#testing">Testing</a></li>
+    </ul>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- HERO -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<header class="hero" id="overview">
+    <h1>Yiddish ASR Benchmark</h1>
+    <p>A full-stack web application for benchmarking Yiddish Automatic Speech Recognition models.
+       Import audio + reference transcriptions, clean/normalize text, run ASR, calculate WER/CER,
+       and compare models on a public leaderboard.</p>
+    <div class="hero-badges">
+        <span class="badge laravel">Laravel 12</span>
+        <span class="badge vue">Vue 3</span>
+        <span class="badge inertia">Inertia.js v2</span>
+        <span class="badge tailwind">Tailwind CSS v4</span>
+        <span class="badge sqlite">SQLite</span>
+    </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- WHAT IT DOES -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section>
+    <h2><span class="num">00</span> What This Project Does</h2>
+    <p class="subtitle">End-to-end pipeline for evaluating how well speech-to-text models understand Yiddish</p>
+
+    <div class="card-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+        <div class="card">
+            <div class="card-icon" style="background: rgba(0,212,255,0.1); color: var(--accent-blue);">1</div>
+            <h3>Import Audio + Transcripts</h3>
+            <p>Bulk import audio samples and their human-written reference transcriptions from Google Sheets, file uploads, or manual entry.</p>
+        </div>
+        <div class="card">
+            <div class="card-icon" style="background: rgba(0,255,136,0.1); color: var(--accent-green);">2</div>
+            <h3>Clean Reference Text</h3>
+            <p>Yiddish religious texts contain editorial notes, Hebrew citations, section markers, brackets. The cleaning pipeline strips non-spoken content to create accurate ground truth.</p>
+        </div>
+        <div class="card">
+            <div class="card-icon" style="background: rgba(255,0,110,0.1); color: var(--accent-magenta);">3</div>
+            <h3>Run ASR Models</h3>
+            <p>Send audio to speech recognition APIs (YiddishLabs, OpenAI Whisper, local Whisper) and collect the hypothesis transcriptions with word-level timing data.</p>
+        </div>
+        <div class="card">
+            <div class="card-icon" style="background: rgba(255,204,0,0.1); color: var(--accent-yellow);">4</div>
+            <h3>Calculate Accuracy</h3>
+            <p>Compare ASR output to cleaned reference using WER (Word Error Rate) and CER (Character Error Rate) with Hebrew-aware normalization.</p>
+        </div>
+        <div class="card">
+            <div class="card-icon" style="background: rgba(179,102,255,0.1); color: var(--accent-purple);">5</div>
+            <h3>Public Leaderboard</h3>
+            <p>Public benchmark page ranks ASR models by average WER/CER. Supports model comparison, per-sample drill-down, and a curated "gold standard" subset.</p>
+        </div>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TECH STACK -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="tech-stack">
+    <h2><span class="num">01</span> Tech Stack</h2>
+    <p class="subtitle">Full-stack monolith powered by Laravel + Vue, bridged by Inertia.js</p>
+
+    <div class="tech-grid">
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(255,68,68,0.15); color: #ff4444;">L</div>
+            <div><div class="tech-name">Laravel 12</div><div class="tech-role">Backend framework, routing, ORM, queues</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(66,184,131,0.15); color: #42b883;">V</div>
+            <div><div class="tech-name">Vue 3 + TypeScript</div><div class="tech-role">Reactive frontend SPA</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(179,102,255,0.15); color: var(--accent-purple);">I</div>
+            <div><div class="tech-name">Inertia.js v2</div><div class="tech-role">Server-driven SPA bridge (no REST API)</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(56,189,248,0.15); color: #38bdf8;">T</div>
+            <div><div class="tech-name">Tailwind CSS v4</div><div class="tech-role">Utility-first styling</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(0,212,255,0.15); color: var(--accent-blue);">S</div>
+            <div><div class="tech-name">shadcn-vue</div><div class="tech-role">Headless UI component library</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(0,160,214,0.15); color: #00a0d6;">D</div>
+            <div><div class="tech-name">SQLite</div><div class="tech-role">Default database (also MySQL/PG)</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(255,140,0,0.15); color: var(--accent-orange);">Q</div>
+            <div><div class="tech-name">Laravel Queue</div><div class="tech-role">Background job processing</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(0,255,136,0.15); color: var(--accent-green);">R</div>
+            <div><div class="tech-name">Laravel Reverb + Echo</div><div class="tech-role">Realtime WebSocket events</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(255,204,0,0.15); color: var(--accent-yellow);">M</div>
+            <div><div class="tech-name">Spatie Media Library</div><div class="tech-role">File/audio storage (local + S3)</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(255,68,68,0.15); color: #ff6666;">P</div>
+            <div><div class="tech-name">Pest 4</div><div class="tech-role">PHP testing framework</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(66,184,131,0.15); color: #66cc99;">Vi</div>
+            <div><div class="tech-name">Vite 7</div><div class="tech-role">Build tool with HMR</div></div>
+        </div>
+        <div class="tech-item">
+            <div class="tech-icon" style="background: rgba(0,212,255,0.15); color: var(--accent-blue);">G</div>
+            <div><div class="tech-name">Google API Client</div><div class="tech-role">Sheets + Drive integration</div></div>
+        </div>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- ARCHITECTURE -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="architecture">
+    <h2><span class="num">02</span> System Architecture</h2>
+    <p class="subtitle">Layered architecture: Inertia.js eliminates the traditional API layer between backend and frontend</p>
+
+    <div class="arch-diagram">
+        <!-- Browser Layer -->
+        <div class="arch-layer layer-blue" data-label="Browser / Client">
+            <div class="arch-items">
+                <div class="arch-item item-blue">Vue 3 Pages (SPA)</div>
+                <div class="arch-item item-blue">shadcn-vue Components</div>
+                <div class="arch-item item-blue">Inertia.js Client</div>
+                <div class="arch-item item-blue">Laravel Echo (WebSocket)</div>
+                <div class="arch-item item-blue">Ziggy (Route URLs)</div>
+            </div>
+        </div>
+
+        <div class="arch-arrow">&#8595;</div>
+
+        <!-- Inertia Bridge -->
+        <div class="arch-layer layer-purple" data-label="Inertia.js Bridge (No REST API)">
+            <div class="arch-items">
+                <div class="arch-item item-purple">Server renders Vue page props</div>
+                <div class="arch-item item-purple">XHR on navigation (JSON props)</div>
+                <div class="arch-item item-purple">Form submissions via Inertia.visit()</div>
+                <div class="arch-item item-purple">SSR support via ssr.ts</div>
+            </div>
+        </div>
+
+        <div class="arch-arrow">&#8595;</div>
+
+        <!-- Controllers -->
+        <div class="arch-layer layer-green" data-label="Laravel Controllers">
+            <div class="arch-items">
+                <div class="arch-item item-green">DashboardController</div>
+                <div class="arch-item item-green">ImportController</div>
+                <div class="arch-item item-green">AudioSampleController</div>
+                <div class="arch-item item-green">TranscriptionController</div>
+                <div class="arch-item item-green">BenchmarkController</div>
+                <div class="arch-item item-green">SettingsController</div>
+                <div class="arch-item item-green">API Controllers</div>
+            </div>
+        </div>
+
+        <div class="arch-arrow">&#8595;</div>
+
+        <!-- Services -->
+        <div class="arch-layer layer-magenta" data-label="Service Layer">
+            <div class="arch-items">
+                <div class="arch-item item-magenta">CleanerService</div>
+                <div class="arch-item item-magenta">AsrManager</div>
+                <div class="arch-item item-magenta">LlmManager</div>
+                <div class="arch-item item-magenta">WerCalculator</div>
+                <div class="arch-item item-magenta">DiffService</div>
+                <div class="arch-item item-magenta">ParserService</div>
+                <div class="arch-item item-magenta">AlignmentManager</div>
+                <div class="arch-item item-magenta">CleanRateCalculator</div>
+                <div class="arch-item item-magenta">GoogleAuthService</div>
+                <div class="arch-item item-magenta">SheetsService</div>
+            </div>
+        </div>
+
+        <div class="arch-arrow">&#8595;</div>
+
+        <!-- Queue Jobs -->
+        <div class="arch-layer layer-orange" data-label="Queue Jobs (Background)">
+            <div class="arch-items">
+                <div class="arch-item item-orange">CleanTranscriptionJob</div>
+                <div class="arch-item item-orange">TranscribeAudioSampleJob</div>
+                <div class="arch-item item-orange">ProcessSheetBatchJob</div>
+                <div class="arch-item item-orange">AlignTranscriptionJob</div>
+                <div class="arch-item item-orange">CalculateMetricsJob</div>
+                <div class="arch-item item-orange">ImportAudioSampleJob</div>
+            </div>
+        </div>
+
+        <div class="arch-arrow">&#8595;</div>
+
+        <!-- Data + External -->
+        <div class="arch-layer layer-yellow" data-label="Data & External APIs">
+            <div class="arch-items">
+                <div class="arch-item item-yellow">SQLite / MySQL / PG</div>
+                <div class="arch-item item-yellow">File Storage (local/S3)</div>
+                <div class="arch-item item-yellow">YiddishLabs ASR API</div>
+                <div class="arch-item item-yellow">OpenAI Whisper API</div>
+                <div class="arch-item item-yellow">LLM APIs (5 providers)</div>
+                <div class="arch-item item-yellow">Google Sheets + Drive</div>
+                <div class="arch-item item-yellow">Laravel Reverb (WS)</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DIRECTORY STRUCTURE -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="directory">
+    <h2><span class="num">03</span> Directory Structure</h2>
+    <p class="subtitle">Key directories and their roles in the project</p>
+
+    <div class="tree">
+<span class="dir">yiddish-cleaner/</span>
+├── <span class="dir">app/</span>
+│   ├── <span class="dir">Http/Controllers/</span>         <span class="comment"># 10 controllers (Inertia page rendering + form handling)</span>
+│   ├── <span class="dir">Http/Controllers/Api/</span>     <span class="comment"># 3 JSON API controllers (ASR, LLM, Words)</span>
+│   ├── <span class="dir">Http/Requests/</span>            <span class="comment"># Form request validation classes</span>
+│   ├── <span class="dir">Jobs/</span>                     <span class="comment"># 8 queue jobs (clean, transcribe, import, align)</span>
+│   ├── <span class="dir">Models/</span>                   <span class="comment"># 10 Eloquent models (AudioSample, Transcription, etc.)</span>
+│   ├── <span class="dir">Services/</span>
+│   │   ├── <span class="dir">Cleaning/</span>             <span class="comment"># 8 text processors + CleanerService orchestrator</span>
+│   │   │   ├── <span class="dir">Processors/</span>       <span class="comment"># BracketsProcessor, TitleStyleProcessor, etc.</span>
+│   │   │   └── <span class="dir">CleanRate/Rules/</span>  <span class="comment"># 9 scoring rules for clean quality</span>
+│   │   ├── <span class="dir">Asr/</span>                  <span class="comment"># ASR manager + 3 drivers + WER calculator</span>
+│   │   │   └── <span class="dir">Drivers/</span>          <span class="comment"># YiddishLabs, Whisper, LocalWhisper</span>
+│   │   ├── <span class="dir">Llm/</span>                  <span class="comment"># LLM manager + 5 drivers for AI cleaning</span>
+│   │   │   └── <span class="dir">Drivers/</span>          <span class="comment"># OpenRouter, Anthropic, OpenAI, Google, Groq</span>
+│   │   ├── <span class="dir">Alignment/</span>            <span class="comment"># WhisperX word alignment</span>
+│   │   ├── <span class="dir">Document/</span>             <span class="comment"># docx/doc/txt text extraction</span>
+│   │   └── <span class="dir">Google/</span>               <span class="comment"># Sheets + Drive + OAuth</span>
+│   ├── <span class="dir">Events/</span>                   <span class="comment"># 3 broadcast events (real-time updates)</span>
+│   └── <span class="dir">Policies/</span>                 <span class="comment"># Authorization policies</span>
+├── <span class="dir">resources/js/</span>
+│   ├── <span class="dir">pages/</span>                    <span class="comment"># 20+ Inertia Vue page components</span>
+│   │   ├── <span class="dir">AudioSamples/</span>         <span class="comment"># Create, Index, Show, Runs</span>
+│   │   ├── <span class="dir">Benchmark/</span>            <span class="comment"># Index, Model, Compare, GoldStandard</span>
+│   │   ├── <span class="dir">Import/</span>               <span class="comment"># Create, Index, Show</span>
+│   │   └── <span class="dir">Transcriptions/</span>       <span class="comment"># Create, Index, Show</span>
+│   ├── <span class="dir">components/</span>               <span class="comment"># 40+ app components + shadcn-vue primitives</span>
+│   │   ├── <span class="dir">audio-samples/</span>        <span class="comment"># 7 audio sample sub-components</span>
+│   │   ├── <span class="dir">transcriptions/</span>       <span class="comment"># 5 transcription sub-components</span>
+│   │   └── <span class="dir">ui/</span>                   <span class="comment"># 25+ shadcn-vue UI primitives</span>
+│   ├── <span class="dir">composables/</span>              <span class="comment"># 6 Vue composables (pagination, selection, etc.)</span>
+│   ├── <span class="dir">layouts/</span>                  <span class="comment"># App, Auth, Settings layouts</span>
+│   ├── <span class="dir">lib/</span>                      <span class="comment"># Utility functions (metrics, status, dates)</span>
+│   └── <span class="dir">types/</span>                    <span class="comment"># TypeScript type definitions</span>
+├── <span class="dir">config/</span>
+│   ├── <span class="file">cleaning.php</span>              <span class="comment"># Presets, processor config, LLM providers, patterns</span>
+│   ├── <span class="file">asr.php</span>                   <span class="comment"># ASR provider configuration</span>
+│   └── <span class="file">alignment.php</span>             <span class="comment"># Word alignment settings</span>
+├── <span class="dir">database/migrations/</span>          <span class="comment"># 25+ migrations (Jan-Feb 2026)</span>
+├── <span class="dir">scripts/</span>                      <span class="comment"># Python scripts (WhisperX, local Whisper)</span>
+├── <span class="dir">tests/</span>                        <span class="comment"># 17 Pest tests (Feature + Unit)</span>
+├── <span class="dir">routes/</span>
+│   ├── <span class="file">web.php</span>                   <span class="comment"># 65+ routes</span>
+│   └── <span class="file">settings.php</span>              <span class="comment"># Settings sub-routes</span>
+└── <span class="dir">docs/</span>                         <span class="comment"># MASTER-PLAN.md + screenshots</span>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DATA MODELS -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="data-models">
+    <h2><span class="num">04</span> Data Models</h2>
+    <p class="subtitle">Core Eloquent models and their relationships</p>
+
+    <div class="er-grid">
+        <!-- AudioSample -->
+        <div class="er-entity">
+            <div class="er-entity-header" style="background: rgba(0,212,255,0.1); color: var(--accent-blue);">AudioSample</div>
+            <div class="er-entity-body">
+                <div class="er-field pk"><span class="er-field-name">id</span><span class="er-field-type">bigint PK</span></div>
+                <div class="er-field fk"><span class="er-field-name">user_id</span><span class="er-field-type">FK &rarr; User</span></div>
+                <div class="er-field"><span class="er-field-name">title</span><span class="er-field-type">string</span></div>
+                <div class="er-field"><span class="er-field-name">status</span><span class="er-field-type">enum</span></div>
+                <div class="er-field"><span class="er-field-name">source_url</span><span class="er-field-type">string?</span></div>
+                <div class="er-field"><span class="er-field-name">duration</span><span class="er-field-type">decimal?</span></div>
+                <div class="er-field"><span class="er-field-name">metadata</span><span class="er-field-type">json</span></div>
+                <div class="er-field rel"><span class="er-field-name">hasMany Transcriptions</span><span class="er-field-type">M2M pivot</span></div>
+                <div class="er-field rel"><span class="er-field-name">hasMedia audio</span><span class="er-field-type">Spatie</span></div>
+            </div>
+        </div>
+
+        <!-- Transcription -->
+        <div class="er-entity">
+            <div class="er-entity-header" style="background: rgba(0,255,136,0.1); color: var(--accent-green);">Transcription</div>
+            <div class="er-entity-body">
+                <div class="er-field pk"><span class="er-field-name">id</span><span class="er-field-type">bigint PK</span></div>
+                <div class="er-field fk"><span class="er-field-name">user_id</span><span class="er-field-type">FK &rarr; User</span></div>
+                <div class="er-field"><span class="er-field-name">type</span><span class="er-field-type">"base" | "asr"</span></div>
+                <div class="er-field"><span class="er-field-name">text_raw</span><span class="er-field-type">longtext?</span></div>
+                <div class="er-field"><span class="er-field-name">text_clean</span><span class="er-field-type">longtext?</span></div>
+                <div class="er-field"><span class="er-field-name">hypothesis_text</span><span class="er-field-type">longtext?</span></div>
+                <div class="er-field"><span class="er-field-name">wer / cer / custom_wer</span><span class="er-field-type">decimal?</span></div>
+                <div class="er-field"><span class="er-field-name">clean_rate</span><span class="er-field-type">decimal?</span></div>
+                <div class="er-field"><span class="er-field-name">asr_provider / asr_model</span><span class="er-field-type">string?</span></div>
+                <div class="er-field"><span class="er-field-name">cleaning_metrics</span><span class="er-field-type">json</span></div>
+                <div class="er-field rel"><span class="er-field-name">hasMany Words, Segments</span><span class="er-field-type">1:N</span></div>
+            </div>
+        </div>
+
+        <!-- TranscriptionWord -->
+        <div class="er-entity">
+            <div class="er-entity-header" style="background: rgba(255,204,0,0.1); color: var(--accent-yellow);">TranscriptionWord</div>
+            <div class="er-entity-body">
+                <div class="er-field pk"><span class="er-field-name">id</span><span class="er-field-type">bigint PK</span></div>
+                <div class="er-field fk"><span class="er-field-name">transcription_id</span><span class="er-field-type">FK</span></div>
+                <div class="er-field"><span class="er-field-name">word</span><span class="er-field-type">string</span></div>
+                <div class="er-field"><span class="er-field-name">start / end</span><span class="er-field-type">decimal</span></div>
+                <div class="er-field"><span class="er-field-name">confidence</span><span class="er-field-type">decimal?</span></div>
+                <div class="er-field"><span class="er-field-name">reference_word</span><span class="er-field-type">string?</span></div>
+                <div class="er-field"><span class="er-field-name">is_critical_error</span><span class="er-field-type">bool</span></div>
+                <div class="er-field"><span class="er-field-name">error_type</span><span class="er-field-type">S/I/D?</span></div>
+            </div>
+        </div>
+
+        <!-- ProcessingRun -->
+        <div class="er-entity">
+            <div class="er-entity-header" style="background: rgba(255,0,110,0.1); color: var(--accent-magenta);">ProcessingRun</div>
+            <div class="er-entity-body">
+                <div class="er-field pk"><span class="er-field-name">id</span><span class="er-field-type">bigint PK</span></div>
+                <div class="er-field fk"><span class="er-field-name">user_id</span><span class="er-field-type">FK &rarr; User</span></div>
+                <div class="er-field"><span class="er-field-name">source_type</span><span class="er-field-type">sheet | file</span></div>
+                <div class="er-field"><span class="er-field-name">status</span><span class="er-field-type">pending...done</span></div>
+                <div class="er-field"><span class="er-field-name">total / processed / failed</span><span class="er-field-type">int</span></div>
+                <div class="er-field"><span class="er-field-name">source_url</span><span class="er-field-type">string</span></div>
+            </div>
+        </div>
+
+        <!-- ApiCredential -->
+        <div class="er-entity">
+            <div class="er-entity-header" style="background: rgba(179,102,255,0.1); color: var(--accent-purple);">ApiCredential</div>
+            <div class="er-entity-body">
+                <div class="er-field pk"><span class="er-field-name">id</span><span class="er-field-type">bigint PK</span></div>
+                <div class="er-field fk"><span class="er-field-name">user_id</span><span class="er-field-type">FK &rarr; User</span></div>
+                <div class="er-field"><span class="er-field-name">provider</span><span class="er-field-type">string</span></div>
+                <div class="er-field"><span class="er-field-name">api_key</span><span class="er-field-type">encrypted</span></div>
+                <div class="er-field"><span class="er-field-name">is_active</span><span class="er-field-type">bool</span></div>
+            </div>
+        </div>
+
+        <!-- User -->
+        <div class="er-entity">
+            <div class="er-entity-header" style="background: rgba(255,140,0,0.1); color: var(--accent-orange);">User</div>
+            <div class="er-entity-body">
+                <div class="er-field pk"><span class="er-field-name">id</span><span class="er-field-type">bigint PK</span></div>
+                <div class="er-field"><span class="er-field-name">name / email</span><span class="er-field-type">string</span></div>
+                <div class="er-field"><span class="er-field-name">two_factor_*</span><span class="er-field-type">2FA fields</span></div>
+                <div class="er-field rel"><span class="er-field-name">hasMany AudioSamples</span><span class="er-field-type">1:N</span></div>
+                <div class="er-field rel"><span class="er-field-name">hasMany Transcriptions</span><span class="er-field-type">1:N</span></div>
+                <div class="er-field rel"><span class="er-field-name">hasMany ApiCredentials</span><span class="er-field-type">1:N</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 2rem;">
+        <h3 style="font-size: 1rem; margin-bottom: 1rem;">AudioSample Status Workflow</h3>
+        <div class="status-flow">
+            <span class="status-badge" style="color: var(--accent-blue); border-color: rgba(0,212,255,0.4); background: rgba(0,212,255,0.08);">new</span>
+            <span class="status-arrow">&rarr;</span>
+            <span class="status-badge" style="color: var(--accent-orange); border-color: rgba(255,140,0,0.4); background: rgba(255,140,0,0.08);">in_progress</span>
+            <span class="status-arrow">&rarr;</span>
+            <span class="status-badge" style="color: var(--accent-purple); border-color: rgba(179,102,255,0.4); background: rgba(179,102,255,0.08);">review</span>
+            <span class="status-arrow">&rarr;</span>
+            <span class="status-badge" style="color: var(--accent-green); border-color: rgba(0,255,136,0.4); background: rgba(0,255,136,0.08);">done</span>
+        </div>
+        <p style="text-align: center; font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
+            Status syncs automatically based on transcription state: imported &rarr; cleaning &rarr; validated &rarr; benchmarked
+        </p>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- USER JOURNEY -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="user-journey">
+    <h2><span class="num">05</span> User Journey</h2>
+    <p class="subtitle">Complete workflow from importing audio to publishing benchmark results</p>
+
+    <div class="flow-container">
+        <!-- Step 1: Login -->
+        <div class="flow-step flow-blue">
+            <div class="flow-num">1</div>
+            <div class="flow-content">
+                <h4>Register & Configure</h4>
+                <p>User registers an account (with optional 2FA). Navigates to Settings &rarr; Credentials to add API keys for ASR providers (YiddishLabs, OpenAI) and LLM providers (Anthropic, OpenRouter, etc.). Connects Google account for Sheets/Drive access.</p>
+            </div>
+        </div>
+        <div class="flow-connector flow-blue" style="margin-left: 23px;"></div>
+
+        <!-- Step 2: Import -->
+        <div class="flow-step flow-green">
+            <div class="flow-num">2</div>
+            <div class="flow-content">
+                <h4>Import Audio + Reference Transcripts</h4>
+                <p>Go to Import &rarr; Create. Paste a Google Sheet URL (rows = audio samples with links to audio files and transcript documents on Google Drive) or upload a spreadsheet file. The system queues batch import jobs that download each audio file and extract text from each transcript document (docx/doc/txt).</p>
+            </div>
+        </div>
+        <div class="flow-connector flow-green" style="margin-left: 23px;"></div>
+
+        <!-- Step 3: Review Imports -->
+        <div class="flow-step flow-green">
+            <div class="flow-num">3</div>
+            <div class="flow-content">
+                <h4>Monitor Import Progress</h4>
+                <p>Import Runs page shows real-time progress (via WebSocket events). Each row shows status: pending &rarr; processing &rarr; completed/failed. Click into a run to see individual audio sample results.</p>
+            </div>
+        </div>
+        <div class="flow-connector flow-magenta" style="margin-left: 23px;"></div>
+
+        <!-- Step 4: Clean -->
+        <div class="flow-step flow-magenta">
+            <div class="flow-num">4</div>
+            <div class="flow-content">
+                <h4>Clean Reference Transcriptions</h4>
+                <p>Navigate to a Transcription &rarr; Show page. The raw text from the document is displayed. Choose a cleaning method:<br>
+                <strong>Rule-based:</strong> Select a preset (full_clean, heavy, etc.) that runs 8 text processors in sequence.<br>
+                <strong>LLM-based:</strong> Select an LLM provider/model to intelligently remove non-spoken content.<br>
+                A background job runs the cleaning and shows a diff view (red = removed, green = kept) when complete.</p>
+            </div>
+        </div>
+        <div class="flow-connector flow-magenta" style="margin-left: 23px;"></div>
+
+        <!-- Step 5: Validate -->
+        <div class="flow-step flow-magenta">
+            <div class="flow-num">5</div>
+            <div class="flow-content">
+                <h4>Review & Validate Cleaned Text</h4>
+                <p>Inspect the diff view showing what was removed. Optionally edit the cleaned text manually. Check the Clean Rate score (0-100) indicating cleaning quality. Click "Validate" to approve the cleaned text as ground truth for benchmarking.</p>
+            </div>
+        </div>
+        <div class="flow-connector flow-yellow" style="margin-left: 23px;"></div>
+
+        <!-- Step 6: ASR -->
+        <div class="flow-step flow-yellow">
+            <div class="flow-num">6</div>
+            <div class="flow-content">
+                <h4>Run ASR Transcription</h4>
+                <p>On an Audio Sample's Show page, select an ASR provider and model. Click "Transcribe". A background job sends the audio to the ASR API, receives the hypothesis text with word-level timestamps, and automatically calculates WER and CER by comparing against the validated reference text.</p>
+            </div>
+        </div>
+        <div class="flow-connector flow-yellow" style="margin-left: 23px;"></div>
+
+        <!-- Step 7: Word Review -->
+        <div class="flow-step flow-yellow">
+            <div class="flow-num">7</div>
+            <div class="flow-content">
+                <h4>Word-Level Review (Custom WER)</h4>
+                <p>Review word-by-word alignment between reference and hypothesis. For each substitution, mark whether it's a "critical error" (true mistake) or acceptable variant (Yiddish spelling differences). Custom WER = (insertions + deletions + critical_replacements) / total_reference_words. This gives a fairer accuracy metric for Yiddish.</p>
+            </div>
+        </div>
+        <div class="flow-connector flow-purple" style="margin-left: 23px;"></div>
+
+        <!-- Step 8: Benchmark -->
+        <div class="flow-step flow-purple">
+            <div class="flow-num">8</div>
+            <div class="flow-content">
+                <h4>View Public Benchmark</h4>
+                <p>The public Benchmark page (no login required) shows a leaderboard ranking ASR models by average WER, CER, and Custom WER. Drill into any model to see per-sample scores. Use the Compare page to put two models side-by-side on shared audio samples. The Gold Standard page shows results on a curated high-quality subset.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- CLEANING PIPELINE -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="cleaning">
+    <h2><span class="num">06</span> Text Cleaning Pipeline</h2>
+    <p class="subtitle">Transforms raw Yiddish transcriptions into clean ground truth by removing non-spoken content</p>
+
+    <h3 style="font-size: 1rem; margin-bottom: 1rem;">Why Cleaning Is Needed</h3>
+    <div class="card" style="margin-bottom: 2rem;">
+        <p>Yiddish religious lecture transcriptions (from Torah classes, Chassidic discourses) contain extensive non-spoken content:
+        editorial brackets <code>[ed. note]</code>, parenthetical notes <code>(unclear)</code>, Hebrew scripture citations,
+        section markers (seif aleph, etc.), document titles/headings, and special Unicode characters.
+        None of this appears in spoken audio, so it must be removed before comparing against ASR output.</p>
+    </div>
+
+    <h3 style="font-size: 1rem; margin-bottom: 1rem;">Processor Pipeline (Rule-Based)</h3>
+    <div class="pipeline" style="margin-bottom: 2rem;">
+        <div class="pipe-stage item-blue">SpecialChars<br><span style="font-size: 0.65rem; opacity: 0.7;">Zero-width chars,<br>smart quotes</span></div>
+        <div class="pipe-arrow">&rarr;</div>
+        <div class="pipe-stage item-green">SeifMarker<br><span style="font-size: 0.65rem; opacity: 0.7;">Hebrew section<br>markers</span></div>
+        <div class="pipe-arrow">&rarr;</div>
+        <div class="pipe-stage item-magenta">TitleStyle<br><span style="font-size: 0.65rem; opacity: 0.7;">Headings by<br>style/heuristic</span></div>
+        <div class="pipe-arrow">&rarr;</div>
+        <div class="pipe-stage item-yellow">Brackets<br><span style="font-size: 0.65rem; opacity: 0.7;">Inline [editorial]<br>annotations</span></div>
+        <div class="pipe-arrow">&rarr;</div>
+        <div class="pipe-stage item-purple">EditorialHebrew<br><span style="font-size: 0.65rem; opacity: 0.7;">Non-spoken Hebrew<br>citations/refs</span></div>
+        <div class="pipe-arrow">&rarr;</div>
+        <div class="pipe-stage item-orange">Parentheses<br><span style="font-size: 0.65rem; opacity: 0.7;">Editorial (notes),<br>(inaudible)</span></div>
+        <div class="pipe-arrow">&rarr;</div>
+        <div class="pipe-stage item-magenta">ForceRemove<br><span style="font-size: 0.65rem; opacity: 0.7;">Configured<br>patterns</span></div>
+        <div class="pipe-arrow">&rarr;</div>
+        <div class="pipe-stage item-blue">Whitespace<br><span style="font-size: 0.65rem; opacity: 0.7;">Normalize lines<br>& spaces</span></div>
+    </div>
+
+    <h3 style="font-size: 1rem; margin-bottom: 1rem;">Cleaning Presets</h3>
+    <div class="two-col" style="margin-bottom: 2rem;">
+        <table class="info-table">
+            <thead><tr><th>Preset</th><th>Processors Included</th></tr></thead>
+            <tbody>
+                <tr><td>minimal</td><td>SpecialChars + Whitespace</td></tr>
+                <tr><td>titles_only</td><td>+ SeifMarker + TitleStyle</td></tr>
+                <tr><td>full_clean</td><td>+ Brackets (most common)</td></tr>
+                <tr><td>with_editorial</td><td>+ EditorialHebrew</td></tr>
+                <tr><td>heavy</td><td>All 8 processors</td></tr>
+            </tbody>
+        </table>
+        <div class="card">
+            <h3>LLM Alternative</h3>
+            <p style="margin-bottom: 0.75rem;">Instead of rules, send the text to an LLM with a Yiddish-specific prompt. Supported providers:</p>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge" style="color: var(--accent-green);">OpenRouter</span>
+                <span class="badge" style="color: var(--accent-blue);">OpenAI</span>
+                <span class="badge" style="color: var(--accent-magenta);">Anthropic</span>
+                <span class="badge" style="color: var(--accent-yellow);">Google AI</span>
+                <span class="badge" style="color: var(--accent-orange);">Groq</span>
+            </div>
+            <p style="margin-top: 0.75rem;">The LLM is instructed to remove only non-spoken content while preserving original Yiddish wording exactly.</p>
+        </div>
+    </div>
+
+    <h3 style="font-size: 1rem; margin-bottom: 1rem;">Clean Rate Scoring</h3>
+    <div class="metric-cards">
+        <div class="metric-card">
+            <div class="metric-label">Excellent</div>
+            <div class="metric-value" style="color: var(--accent-green);">90-100</div>
+            <div class="metric-detail">Minimal removals, clean text</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Good</div>
+            <div class="metric-value" style="color: var(--accent-blue);">75-89</div>
+            <div class="metric-detail">Reasonable removals</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Moderate</div>
+            <div class="metric-value" style="color: var(--accent-yellow);">50-74</div>
+            <div class="metric-detail">Significant removals</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Low</div>
+            <div class="metric-value" style="color: var(--accent-orange);">25-49</div>
+            <div class="metric-detail">Heavy removals, review needed</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Poor</div>
+            <div class="metric-value" style="color: var(--accent-magenta);">0-24</div>
+            <div class="metric-detail">Too much removed</div>
+        </div>
+    </div>
+    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem;">
+        Scoring starts at 100. Nine rules apply penalties based on removal types (brackets, titles, Hebrew, etc.).
+        Global penalties for &gt;50% text reduction or &lt;50 words remaining.
+    </p>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- ASR & WER -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="asr">
+    <h2><span class="num">07</span> ASR Transcription & WER Calculation</h2>
+    <p class="subtitle">Speech recognition drivers and accuracy measurement with Hebrew-aware normalization</p>
+
+    <div class="two-col" style="margin-bottom: 2rem;">
+        <div>
+            <h3 style="font-size: 1rem; margin-bottom: 1rem;">ASR Drivers</h3>
+            <table class="info-table">
+                <thead><tr><th>Driver</th><th>Description</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td><code>YiddishLabsDriver</code></td>
+                        <td>Async API: POST audio &rarr; poll status until completed &rarr; parse timestamps. Purpose-built for Yiddish.</td>
+                    </tr>
+                    <tr>
+                        <td><code>WhisperDriver</code></td>
+                        <td>OpenAI Whisper API. Upload audio, get transcription + segments.</td>
+                    </tr>
+                    <tr>
+                        <td><code>LocalWhisperDriver</code></td>
+                        <td>Runs Python Whisper locally via <code>scripts/whisper_transcribe.py</code>. No API key needed.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div>
+            <h3 style="font-size: 1rem; margin-bottom: 1rem;">WER Calculation</h3>
+            <div class="card">
+                <p style="margin-bottom: 0.75rem;"><strong>WerCalculator</strong> uses Levenshtein distance with Yiddish-specific normalization:</p>
+                <ul style="font-size: 0.82rem; color: var(--text-secondary); padding-left: 1.25rem;">
+                    <li>Strips Hebrew nikkud (vowel marks) and cantillation marks</li>
+                    <li>Strips punctuation</li>
+                    <li>Lowercases text</li>
+                    <li>Word-level WER = (S + I + D) / reference_words</li>
+                    <li>Character-level CER = same formula on characters</li>
+                    <li>Detailed error list: each error tagged as substitution, insertion, or deletion</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <h3 style="font-size: 1rem; margin-bottom: 1rem;">Custom WER (Word Review)</h3>
+    <div class="card">
+        <p>Standard WER penalizes ALL substitutions equally. But in Yiddish, many "errors" are acceptable spelling variants.
+        Custom WER lets users review each word and flag only truly wrong substitutions as "critical errors".</p>
+        <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">
+            <span style="color: var(--accent-yellow);">Custom WER</span> = (<span style="color: var(--accent-magenta);">insertions</span> + <span style="color: var(--accent-magenta);">deletions</span> + <span style="color: var(--accent-magenta);">critical_replacements</span>) / <span style="color: var(--accent-blue);">total_reference_words</span>
+        </div>
+        <p style="margin-top: 0.75rem; font-size: 0.82rem; color: var(--text-secondary);">
+            This gives a more meaningful accuracy metric that reflects real comprehension errors rather than orthographic variation.
+        </p>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- BENCHMARK -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="benchmark">
+    <h2><span class="num">08</span> Public Benchmark</h2>
+    <p class="subtitle">Public-facing leaderboard comparing ASR model performance on Yiddish</p>
+
+    <div class="card-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+        <div class="card">
+            <div class="card-icon" style="background: rgba(0,212,255,0.1); color: var(--accent-blue);">&#9776;</div>
+            <h3>Leaderboard (Index)</h3>
+            <p>Ranks ASR models by average WER, CER, and Custom WER across all benchmarked audio samples. Shows sample count per model. Public, no auth required.</p>
+            <p style="margin-top: 0.5rem;"><code>/benchmark</code></p>
+        </div>
+        <div class="card">
+            <div class="card-icon" style="background: rgba(0,255,136,0.1); color: var(--accent-green);">&#128202;</div>
+            <h3>Model Detail</h3>
+            <p>Per-model page showing WER distribution histogram, per-sample breakdown with individual scores, and aggregate statistics.</p>
+            <p style="margin-top: 0.5rem;"><code>/benchmark/models/{name}</code></p>
+        </div>
+        <div class="card">
+            <div class="card-icon" style="background: rgba(255,0,110,0.1); color: var(--accent-magenta);">&#8644;</div>
+            <h3>Compare Models</h3>
+            <p>Side-by-side comparison of two ASR models on shared audio samples. Shows which model wins on each sample.</p>
+            <p style="margin-top: 0.5rem;"><code>/benchmark/compare</code></p>
+        </div>
+        <div class="card">
+            <div class="card-icon" style="background: rgba(255,204,0,0.1); color: var(--accent-yellow);">&#11088;</div>
+            <h3>Gold Standard</h3>
+            <p>Curated subset of high-quality, validated audio samples for standardized comparison. Results on this set are considered the authoritative benchmark.</p>
+            <p style="margin-top: 0.5rem;"><code>/benchmark/gold-standard</code></p>
+        </div>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- SERVICES -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="services">
+    <h2><span class="num">09</span> Backend Services</h2>
+    <p class="subtitle">Service layer classes that encapsulate business logic</p>
+
+    <table class="info-table">
+        <thead><tr><th>Service</th><th>Location</th><th>Responsibility</th></tr></thead>
+        <tbody>
+            <tr><td>CleanerService</td><td><code>Services/Cleaning/</code></td><td>Orchestrates processor pipeline: loads preset config, runs processors in order, collects results</td></tr>
+            <tr><td>CleanRateCalculator</td><td><code>Services/Cleaning/</code></td><td>Scores cleaning quality (0-100) using 9 penalty rules + global penalties</td></tr>
+            <tr><td>DiffService</td><td><code>Services/Cleaning/</code></td><td>Generates line-level and word-level diffs using Longest Common Subsequence algorithm</td></tr>
+            <tr><td>AsrManager</td><td><code>Services/Asr/</code></td><td>Factory pattern: creates the right ASR driver based on provider name</td></tr>
+            <tr><td>WerCalculator</td><td><code>Services/Asr/</code></td><td>Levenshtein-based WER/CER with Hebrew normalization (strips nikkud, cantillation)</td></tr>
+            <tr><td>LlmManager</td><td><code>Services/Llm/</code></td><td>Factory for LLM drivers; used for AI-based text cleaning alternative</td></tr>
+            <tr><td>AlignmentManager</td><td><code>Services/Alignment/</code></td><td>WhisperX word-level alignment for precise timestamp mapping</td></tr>
+            <tr><td>ParserService</td><td><code>Services/Document/</code></td><td>Extracts text from docx/doc/txt using PhpWord; doc files converted via LibreOffice</td></tr>
+            <tr><td>DocxParserService</td><td><code>Services/Document/</code></td><td>Rich docx parsing preserving paragraph metadata (styles, font sizes, bold)</td></tr>
+            <tr><td>GoogleAuthService</td><td><code>Services/Google/</code></td><td>OAuth 2.0 flow for Google Sheets/Drive access</td></tr>
+            <tr><td>SheetsService</td><td><code>Services/Google/</code></td><td>Read/write Google Sheets for batch import</td></tr>
+            <tr><td>DriveService</td><td><code>Services/Google/</code></td><td>Download files from Google Drive</td></tr>
+            <tr><td>DocxWriterService</td><td><code>Services/</code></td><td>Writes cleaned text back to docx format for export</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- FRONTEND -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="frontend">
+    <h2><span class="num">10</span> Frontend Architecture</h2>
+    <p class="subtitle">Vue 3 SPA with Inertia.js server-side routing, dark "Midnight Neon" design system</p>
+
+    <div class="two-col">
+        <div>
+            <h3 style="font-size: 1rem; margin-bottom: 1rem;">How Inertia.js Works</h3>
+            <div class="card">
+                <p style="margin-bottom: 0.75rem;">Inertia eliminates the need for a REST API. Instead:</p>
+                <ol style="font-size: 0.82rem; color: var(--text-secondary); padding-left: 1.25rem;">
+                    <li>Laravel controller returns <code>Inertia::render('Page', $props)</code></li>
+                    <li>First load: full HTML with embedded page data</li>
+                    <li>Subsequent navigations: XHR fetches only JSON props</li>
+                    <li>Vue component receives props and renders reactively</li>
+                    <li>Form submissions via <code>router.post()</code> with validation errors</li>
+                </ol>
+            </div>
+        </div>
+        <div>
+            <h3 style="font-size: 1rem; margin-bottom: 1rem;">Design System</h3>
+            <div class="card">
+                <p style="margin-bottom: 0.5rem;"><strong>"Midnight Neon Studio"</strong></p>
+                <ul style="font-size: 0.82rem; color: var(--text-secondary); padding-left: 1.25rem;">
+                    <li>Dark background: <span style="display: inline-block; width: 12px; height: 12px; background: #0a0a0f; border: 1px solid var(--border); border-radius: 2px; vertical-align: middle;"></span> <code>#0a0a0f</code></li>
+                    <li>Electric Azure: <span style="display: inline-block; width: 12px; height: 12px; background: #00d4ff; border-radius: 2px; vertical-align: middle;"></span> <code>#00d4ff</code></li>
+                    <li>Magenta: <span style="display: inline-block; width: 12px; height: 12px; background: #ff006e; border-radius: 2px; vertical-align: middle;"></span> <code>#ff006e</code></li>
+                    <li>RTL support for Yiddish text</li>
+                    <li>Inter + JetBrains Mono fonts</li>
+                    <li>shadcn-vue component primitives (25+ components)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem;">Key Frontend Components</h3>
+    <div class="card-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+        <div class="card">
+            <h3>AppSidebar</h3>
+            <p>Main navigation with collapsible sections: Dashboard, Import, Audio Samples, Transcriptions, etc.</p>
+        </div>
+        <div class="card">
+            <h3>AudioPlayer</h3>
+            <p>Custom audio player for listening to samples with playback controls.</p>
+        </div>
+        <div class="card">
+            <h3>ProcessorSelector</h3>
+            <p>UI for choosing cleaning preset or individual processors.</p>
+        </div>
+        <div class="card">
+            <h3>DiffViewer</h3>
+            <p>Side-by-side or inline diff view showing raw vs. cleaned text with color-coded changes.</p>
+        </div>
+        <div class="card">
+            <h3>TranscriptionReview</h3>
+            <p>Word-by-word review interface for marking critical errors in ASR output.</p>
+        </div>
+        <div class="card">
+            <h3>DataTable</h3>
+            <p>Reusable table with sorting, pagination, search, and bulk selection.</p>
+        </div>
+    </div>
+
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 1rem;">Composables</h3>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <span class="badge" style="color: var(--accent-blue);"><code>useSmartPagination</code></span>
+        <span class="badge" style="color: var(--accent-green);"><code>useTableSelection</code></span>
+        <span class="badge" style="color: var(--accent-magenta);"><code>useTwoFactorAuth</code></span>
+        <span class="badge" style="color: var(--accent-yellow);"><code>useAppearance</code></span>
+        <span class="badge" style="color: var(--accent-purple);"><code>useActiveUrl</code></span>
+        <span class="badge" style="color: var(--accent-orange);"><code>useInitials</code></span>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- PAGES -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="pages">
+    <h2><span class="num">11</span> Pages & Routes</h2>
+    <p class="subtitle">All Inertia pages and their corresponding routes</p>
+
+    <table class="info-table">
+        <thead><tr><th>Page</th><th>Route</th><th>Auth</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td>Welcome</td><td><code>/</code></td><td>No</td><td>Landing page, redirects to dashboard if logged in</td></tr>
+            <tr><td>Dashboard</td><td><code>/dashboard</code></td><td>Yes</td><td>Stats cards, recent samples, action queues</td></tr>
+            <tr><td>Import Create</td><td><code>/imports/create</code></td><td>Yes</td><td>Google Sheets URL or file upload form</td></tr>
+            <tr><td>Import Index</td><td><code>/imports</code></td><td>Yes</td><td>List of all import runs with progress</td></tr>
+            <tr><td>Import Show</td><td><code>/imports/{run}</code></td><td>Yes</td><td>Individual import run detail</td></tr>
+            <tr><td>Audio Index</td><td><code>/audio-samples</code></td><td>Yes</td><td>Paginated list with filters, search, bulk actions</td></tr>
+            <tr><td>Audio Show</td><td><code>/audio-samples/{id}</code></td><td>Yes</td><td>Audio player, transcriptions, cleaning, benchmark</td></tr>
+            <tr><td>Audio Create</td><td><code>/audio-samples/create</code></td><td>Yes</td><td>Manual audio sample creation</td></tr>
+            <tr><td>Transcription Index</td><td><code>/transcriptions</code></td><td>Yes</td><td>List base transcriptions with clean rate</td></tr>
+            <tr><td>Transcription Show</td><td><code>/transcriptions/{id}</code></td><td>Yes</td><td>Raw/clean text, cleaning controls, word review</td></tr>
+            <tr><td>Transcription Create</td><td><code>/transcriptions/create</code></td><td>Yes</td><td>Manual transcription creation</td></tr>
+            <tr><td>Benchmark Index</td><td><code>/benchmark</code></td><td style="color: var(--accent-green);">No</td><td>Public leaderboard ranking models</td></tr>
+            <tr><td>Benchmark Model</td><td><code>/benchmark/models/{name}</code></td><td style="color: var(--accent-green);">No</td><td>Per-model detail with distribution</td></tr>
+            <tr><td>Benchmark Compare</td><td><code>/benchmark/compare</code></td><td style="color: var(--accent-green);">No</td><td>Side-by-side model comparison</td></tr>
+            <tr><td>Gold Standard</td><td><code>/benchmark/gold-standard</code></td><td style="color: var(--accent-green);">No</td><td>Curated benchmark subset</td></tr>
+            <tr><td>Settings</td><td><code>/settings/*</code></td><td>Yes</td><td>Profile, Password, 2FA, Appearance, Credentials</td></tr>
+            <tr><td>Docs</td><td><code>/docs</code></td><td style="color: var(--accent-green);">No</td><td>Documentation page</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- QUEUE JOBS -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="queue">
+    <h2><span class="num">12</span> Queue Jobs</h2>
+    <p class="subtitle">Background jobs handle all long-running operations: cleaning, ASR, importing</p>
+
+    <div class="card-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+        <div class="card">
+            <h3><code>CleanTranscriptionJob</code></h3>
+            <p>Runs text cleaning (rule-based or LLM). Updates transcription with cleaned text, clean rate, and metrics. Fires <code>AudioSampleProcessed</code> event.</p>
+        </div>
+        <div class="card">
+            <h3><code>TranscribeAudioSampleJob</code></h3>
+            <p>Sends audio to ASR API, receives hypothesis text. Calculates WER/CER against reference. Stores word/segment timing data. Fires completion event.</p>
+        </div>
+        <div class="card">
+            <h3><code>ProcessSheetBatchJob</code></h3>
+            <p>Reads Google Sheet rows, downloads audio from Drive, extracts text from transcript documents, creates AudioSample + Transcription records.</p>
+        </div>
+        <div class="card">
+            <h3><code>ProcessSpreadsheetFileJob</code></h3>
+            <p>Same as sheet batch but from uploaded spreadsheet files instead of Google Sheets.</p>
+        </div>
+        <div class="card">
+            <h3><code>AlignTranscriptionJob</code></h3>
+            <p>Runs WhisperX word alignment to get precise word-level timestamps for a transcription.</p>
+        </div>
+        <div class="card">
+            <h3><code>CalculateTranscriptionMetricsJob</code></h3>
+            <p>Recalculates WER/CER/Custom WER metrics when reference text or word reviews change.</p>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 1.5rem;">
+        <h3>Real-time Updates</h3>
+        <p>Background jobs fire Laravel events (<code>AudioSampleProcessed</code>, <code>BatchCompleted</code>, <code>DocumentProcessed</code>)
+        that are broadcast via <strong>Laravel Reverb</strong> (WebSocket server). The Vue frontend listens via <strong>Laravel Echo</strong>
+        and reactively updates the UI when jobs complete -- no page refresh needed.</p>
+    </div>
+</section>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- TESTING -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section id="testing">
+    <h2><span class="num">13</span> Testing</h2>
+    <p class="subtitle">Pest 4 test suite covering WER calculation, API endpoints, auth flows, and model operations</p>
+
+    <div class="two-col">
+        <div>
+            <h3 style="font-size: 1rem; margin-bottom: 1rem;">Feature Tests (13)</h3>
+            <table class="info-table">
+                <tbody>
+                    <tr><td>CustomWerCalculationTest</td><td>8 test cases</td></tr>
+                    <tr><td>AudioSampleStoreTest</td><td>Creation validation</td></tr>
+                    <tr><td>AudioSampleTranscriptionPivotTest</td><td>M2M relationships</td></tr>
+                    <tr><td>TranscriptionRecalculateTest</td><td>WER recalculation</td></tr>
+                    <tr><td>TranscriptionSegmentTest</td><td>Segment CRUD</td></tr>
+                    <tr><td>TranscriptionWordBulkUpdateTest</td><td>Bulk word updates</td></tr>
+                    <tr><td>TranscriptionWordApiTest</td><td>Word CRUD API</td></tr>
+                    <tr><td>DashboardTest</td><td>Dashboard access</td></tr>
+                    <tr><td>GoogleAuthServiceTest</td><td>OAuth flow</td></tr>
+                    <tr><td>Auth tests (5)</td><td>Login, register, 2FA, etc.</td></tr>
+                    <tr><td>Settings tests (3)</td><td>Profile, password updates</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div>
+            <h3 style="font-size: 1rem; margin-bottom: 1rem;">Unit Tests (4)</h3>
+            <table class="info-table">
+                <tbody>
+                    <tr><td>WerCalculatorTest</td><td>8 test cases: Hebrew nikkud normalization, ranges, ignored words</td></tr>
+                    <tr><td>AsrSegmentTest</td><td>ASR segment DTO</td></tr>
+                    <tr><td>LocalWhisperDriverTest</td><td>Local Whisper driver</td></tr>
+                    <tr><td>YiddishLabsTimestampParserTest</td><td>Timestamp parsing</td></tr>
+                </tbody>
+            </table>
+            <div class="card" style="margin-top: 1rem;">
+                <h3>Running Tests</h3>
+                <p><code>php artisan test --compact</code><br>or<br><code>composer run test</code></p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- FOOTER -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<footer>
+    <p>Architecture documentation for <a href="https://github.com/Shloimy15e/yiddish-cleaner">Shloimy15e/yiddish-cleaner</a></p>
+    <p style="margin-top: 0.5rem;">Generated on February 27, 2026</p>
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- NAV ACTIVE STATE SCRIPT -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('nav a');
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                navLinks.forEach(link => link.classList.remove('active'));
+                const activeLink = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+                if (activeLink) activeLink.classList.add('active');
+            }
+        });
+    }, { rootMargin: '-20% 0px -75% 0px' });
+
+    sections.forEach(section => observer.observe(section));
+});
+</script>
+
+</body>
+</html>
