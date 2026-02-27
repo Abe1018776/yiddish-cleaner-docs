@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JEM ASR Integration Architecture — Unified Yiddish Processing System</title>
+<style>
+:root {
+  --bg: #0b0f19;
+  --surface: #131825;
+  --surface2: #1a2035;
+  --surface3: #222942;
+  --border: #2a3352;
+  --border-light: #3a4a6b;
+  --text: #e2e8f0;
+  --text-dim: #8892b0;
+  --text-muted: #5a6580;
+  --accent: #60a5fa;
+  --accent2: #a78bfa;
+  --green: #34d399;
+  --green-dim: rgba(52,211,153,0.15);
+  --yellow: #fbbf24;
+  --yellow-dim: rgba(251,191,36,0.15);
+  --red: #f87171;
+  --red-dim: rgba(248,113,113,0.15);
+  --orange: #fb923c;
+  --pink: #f472b6;
+  --teal: #2dd4bf;
+  --cyan: #22d3ee;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg); color: var(--text);
+  line-height: 1.65; overflow-x: hidden;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* PRINT */
+@media print {
+  body { background: #fff; color: #111; font-size: 10pt; }
+  nav, .scroll-progress { display: none !important; }
+  .hero { margin-top: 0; padding: 1rem; background: none !important; }
+  section { break-inside: avoid; page-break-inside: avoid; border-color: #ccc !important; }
+  .card, .repo-card, .phase-card, .pipeline-stage { background: #f9f9f9 !important; border-color: #ccc !important; color: #111 !important; }
+  :root { --text: #111; --text-dim: #444; --text-muted: #666; --surface: #f9f9f9; --surface2: #f0f0f0; --border: #ccc; }
+  .collapsible-body { display: block !important; max-height: none !important; }
+}
+
+/* NAV */
+.scroll-progress { position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--pink));z-index:200;transition:width 0.1s; }
+nav {
+  position:fixed;top:3px;left:0;right:0;z-index:100;
+  background:rgba(11,15,25,0.92);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:0 1.5rem;display:flex;align-items:center;height:52px;
+  overflow-x:auto;gap:0.25rem;
+}
+nav .logo { font-weight:700;font-size:1rem;color:var(--accent);white-space:nowrap;margin-right:1rem; }
+nav a.nav-link {
+  color:var(--text-dim);font-size:0.8rem;padding:0.35rem 0.7rem;border-radius:6px;
+  transition:all 0.2s;white-space:nowrap;
+}
+nav a.nav-link:hover, nav a.nav-link.active { color:var(--text);background:var(--surface2);text-decoration:none; }
+
+/* HERO */
+.hero {
+  margin-top:55px;padding:4rem 2rem 3rem;text-align:center;
+  background:linear-gradient(135deg,#0b0f19 0%,#1a1040 35%,#0c2340 65%,#0b0f19 100%);
+  border-bottom:1px solid var(--border);
+}
+.hero h1 { font-size:2.2rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.hero .tagline { color:var(--text-dim);font-size:1rem;margin-top:0.5rem;max-width:700px;margin-left:auto;margin-right:auto; }
+.hero .meta { color:var(--text-muted);font-size:0.8rem;margin-top:1rem; }
+
+/* MAIN */
+main { max-width:1300px;margin:0 auto;padding:2rem 1.5rem 4rem; }
+section { margin-bottom:3rem; }
+section > h2 {
+  font-size:1.4rem;font-weight:700;margin-bottom:1.25rem;padding-bottom:0.5rem;
+  border-bottom:2px solid var(--border);display:flex;align-items:center;gap:0.5rem;
+}
+section > h2 .sec-num {
+  display:inline-flex;align-items:center;justify-content:center;
+  width:28px;height:28px;border-radius:8px;font-size:0.8rem;font-weight:700;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;
+}
+h3 { font-size:1.1rem;font-weight:600;margin-bottom:0.75rem;color:var(--accent); }
+h4 { font-size:0.95rem;font-weight:600;margin-bottom:0.5rem; }
+p { margin-bottom:0.75rem; }
+
+/* CARDS */
+.card {
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.25rem;margin-bottom:1rem;
+}
+.card-header { display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem; }
+.card-header .icon { width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem; }
+
+/* GRID */
+.grid-2 { display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:1rem; }
+.grid-3 { display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem; }
+
+/* REPO CARDS */
+.repo-card {
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.25rem;position:relative;overflow:hidden;
+}
+.repo-card::before {
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+}
+.repo-card.dest::before { background:linear-gradient(90deg,var(--green),var(--teal)); }
+.repo-card.source1::before { background:linear-gradient(90deg,var(--accent),var(--accent2)); }
+.repo-card.source2::before { background:linear-gradient(90deg,var(--orange),var(--yellow)); }
+.repo-card h3 { margin-bottom:0.25rem; }
+.repo-card .repo-role { font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.75rem; }
+.repo-card.dest .repo-role { color:var(--green); }
+.repo-card.source1 .repo-role { color:var(--accent); }
+.repo-card.source2 .repo-role { color:var(--orange); }
+
+/* TAGS */
+.tag { display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;margin:2px; }
+.tag-green { background:var(--green-dim);color:var(--green); }
+.tag-yellow { background:var(--yellow-dim);color:var(--yellow); }
+.tag-red { background:var(--red-dim);color:var(--red); }
+.tag-blue { background:rgba(96,165,250,0.15);color:var(--accent); }
+.tag-purple { background:rgba(167,139,250,0.15);color:var(--accent2); }
+.tag-orange { background:rgba(251,146,60,0.15);color:var(--orange); }
+.tag-teal { background:rgba(45,212,191,0.15);color:var(--teal); }
+
+/* LISTS */
+.file-list { list-style:none;font-size:0.82rem; }
+.file-list li { padding:3px 0;color:var(--text-dim);border-bottom:1px solid rgba(42,51,82,0.4); }
+.file-list li:last-child { border-bottom:none; }
+.file-list code { color:var(--accent);font-size:0.78rem; }
+.file-list .arrow { color:var(--green);margin:0 4px; }
+
+/* COLLAPSIBLE */
+.collapsible { border:1px solid var(--border);border-radius:var(--radius);margin-bottom:0.75rem;overflow:hidden; }
+.collapsible-header {
+  padding:0.85rem 1.25rem;background:var(--surface);cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+  user-select:none;transition:background 0.2s;
+}
+.collapsible-header:hover { background:var(--surface2); }
+.collapsible-header h4 { margin:0;font-size:0.9rem; }
+.collapsible-header .chevron { transition:transform 0.3s;color:var(--text-dim);font-size:0.8rem; }
+.collapsible.open .collapsible-header .chevron { transform:rotate(180deg); }
+.collapsible-body {
+  max-height:0;overflow:hidden;transition:max-height 0.4s ease;
+  background:var(--surface2);
+}
+.collapsible.open .collapsible-body { max-height:3000px; }
+.collapsible-body-inner { padding:1rem 1.25rem; }
+
+/* FLOW DIAGRAMS */
+.flow-container { display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;margin:1rem 0; }
+.flow-node {
+  padding:0.6rem 1rem;border-radius:8px;font-size:0.8rem;font-weight:600;
+  text-align:center;min-width:120px;position:relative;
+}
+.flow-arrow { color:var(--text-muted);font-size:1.2rem;font-weight:700; }
+
+/* PIPELINE */
+.pipeline { display:flex;flex-wrap:wrap;gap:0;margin:1.25rem 0;align-items:stretch; }
+.pipeline-stage {
+  flex:1;min-width:140px;padding:0.85rem;border:1px solid var(--border);
+  position:relative;background:var(--surface);
+}
+.pipeline-stage:first-child { border-radius:var(--radius) 0 0 var(--radius); }
+.pipeline-stage:last-child { border-radius:0 var(--radius) var(--radius) 0; }
+.pipeline-stage h5 { font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem; }
+.pipeline-stage p { font-size:0.72rem;color:var(--text-dim);margin:0; }
+.pipeline-stage .stage-num { font-size:0.65rem;color:var(--text-muted);margin-bottom:0.25rem; }
+.pipeline-stage::after {
+  content:'';position:absolute;right:-8px;top:50%;transform:translateY(-50%);
+  width:0;height:0;border-left:8px solid var(--border);border-top:8px solid transparent;border-bottom:8px solid transparent;
+  z-index:1;
+}
+.pipeline-stage:last-child::after { display:none; }
+
+/* DATA TABLE */
+.data-table { width:100%;border-collapse:collapse;font-size:0.8rem;margin:0.75rem 0; }
+.data-table th { text-align:left;padding:0.5rem 0.75rem;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);font-weight:600;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.3px; }
+.data-table td { padding:0.5rem 0.75rem;border:1px solid var(--border);vertical-align:top; }
+.data-table tr:hover td { background:rgba(96,165,250,0.04); }
+.data-table code { font-size:0.75rem;color:var(--accent); }
+
+/* STATUS INDICATORS */
+.status { display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;font-weight:600; }
+.status::before { content:'';width:8px;height:8px;border-radius:50%; }
+.status-exists::before { background:var(--green); }
+.status-partial::before { background:var(--yellow); }
+.status-missing::before { background:var(--red); }
+
+/* PHASE CARDS */
+.phase-card {
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.25rem;position:relative;overflow:hidden;
+}
+.phase-card::before {
+  content:attr(data-phase);position:absolute;top:0;right:0;
+  padding:0.25rem 0.75rem;font-size:0.7rem;font-weight:700;
+  border-radius:0 var(--radius) 0 8px;
+}
+.phase-card.p1::before { background:var(--green-dim);color:var(--green); }
+.phase-card.p2::before { background:rgba(96,165,250,0.15);color:var(--accent); }
+.phase-card.p3::before { background:rgba(167,139,250,0.15);color:var(--accent2); }
+.phase-card.p4::before { background:rgba(251,146,60,0.15);color:var(--orange); }
+
+/* SVG DIAGRAM */
+.diagram-wrapper { margin:1.5rem 0;overflow-x:auto; }
+.diagram-wrapper svg { display:block;margin:0 auto; }
+
+/* JOURNEY */
+.journey-steps { display:flex;flex-direction:column;gap:1rem;margin:1rem 0; }
+.journey-step { display:flex;gap:1rem;align-items:flex-start; }
+.journey-step .step-marker {
+  width:40px;height:40px;min-width:40px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:0.85rem;color:#fff;
+  position:relative;
+}
+.journey-step .step-marker::after {
+  content:'';position:absolute;top:40px;left:50%;width:2px;height:calc(100% + 1rem);
+  background:var(--border);transform:translateX(-50%);
+}
+.journey-step:last-child .step-marker::after { display:none; }
+.journey-step .step-content { flex:1;padding-bottom:0.5rem; }
+.journey-step .step-content h4 { font-size:0.9rem;margin-bottom:0.25rem; }
+.journey-step .step-content p { font-size:0.82rem;color:var(--text-dim);margin:0; }
+
+/* TECH STACK */
+.stack-row { display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0;border-bottom:1px solid rgba(42,51,82,0.4); }
+.stack-row:last-child { border-bottom:none; }
+.stack-label { width:140px;font-size:0.8rem;font-weight:600;color:var(--text-dim); }
+.stack-value { font-size:0.85rem;flex:1; }
+
+/* RESPONSIVE */
+@media (max-width:768px) {
+  .grid-2,.grid-3 { grid-template-columns:1fr; }
+  .pipeline { flex-direction:column; }
+  .pipeline-stage { border-radius:0 !important; }
+  .pipeline-stage::after { display:none; }
+  nav { padding:0 0.75rem; }
+  main { padding:1rem; }
+  .hero h1 { font-size:1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<nav>
+  <span class="logo">JEM ASR</span>
+  <a class="nav-link" href="#current-state">Current State</a>
+  <a class="nav-link" href="#target-arch">Target Architecture</a>
+  <a class="nav-link" href="#integration-layers">Integration Layers</a>
+  <a class="nav-link" href="#data-flow">Data Flow</a>
+  <a class="nav-link" href="#migration-map">Migration Map</a>
+  <a class="nav-link" href="#pipelines">Pipelines</a>
+  <a class="nav-link" href="#user-journey">User Journey</a>
+  <a class="nav-link" href="#tech-stack">Tech Stack</a>
+  <a class="nav-link" href="#phases">Phases</a>
+</nav>
+
+<div class="hero">
+  <h1>Integration Architecture</h1>
+  <p class="tagline">Consolidating three Yiddish language processing repositories into one unified system within <code>yiddish-cleaner</code></p>
+  <p class="meta">Document generated 2026-02-27 &mdash; Reference guide for integration work</p>
+</div>
+
+<main>
+
+<!-- ============================================================ -->
+<!-- SECTION 1: CURRENT STATE -->
+<!-- ============================================================ -->
+<section id="current-state">
+  <h2><span class="sec-num">1</span> Current State &mdash; Three Separate Systems</h2>
+  <p style="color:var(--text-dim);margin-bottom:1.25rem;">Each repository operates independently with its own tech stack, data model, and deployment. There is no shared database, no unified authentication, and no cross-system data flow.</p>
+
+  <div class="grid-3">
+    <!-- REPO 1: yiddish-cleaner -->
+    <div class="repo-card dest">
+      <div class="repo-role">Destination / PR Target</div>
+      <h3>yiddish-cleaner</h3>
+      <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.75rem;">Laravel-based web application for Yiddish transcript processing, ASR benchmarking, and training data management.</p>
+      <h4 style="font-size:0.8rem;margin-bottom:0.4rem;">Tech Stack</h4>
+      <div style="margin-bottom:0.75rem;">
+        <span class="tag tag-green">Laravel 12</span>
+        <span class="tag tag-green">PHP 8.4</span>
+        <span class="tag tag-green">Vue 3</span>
+        <span class="tag tag-green">Inertia.js v2</span>
+        <span class="tag tag-green">Tailwind CSS 4</span>
+        <span class="tag tag-green">SQLite/MySQL</span>
+        <span class="tag tag-green">Spatie Media Library</span>
+        <span class="tag tag-green">Fortify Auth</span>
+        <span class="tag tag-teal">Vite 7</span>
+        <span class="tag tag-teal">TypeScript</span>
+      </div>
+      <h4 style="font-size:0.8rem;margin-bottom:0.4rem;">Key Models</h4>
+      <ul class="file-list">
+        <li><code>AudioSample</code> &mdash; audio files with status workflow (new/in_progress/review/done)</li>
+        <li><code>Transcription</code> &mdash; base (manual) and ASR types, cleaning, validation, alignment</li>
+        <li><code>TranscriptionWord</code> &mdash; word-level data with timestamps, confidence, corrections</li>
+        <li><code>TranscriptionSegment</code> &mdash; segment-level data with timestamps</li>
+        <li><code>AudioSampleTranscription</code> &mdash; M2M pivot linking audio to transcriptions</li>
+        <li><code>TrainingVersion</code> &mdash; training dataset snapshots with criteria &amp; export</li>
+        <li><code>ProcessingRun</code> &mdash; batch import/processing tracking</li>
+      </ul>
+      <h4 style="font-size:0.8rem;margin-top:0.75rem;margin-bottom:0.4rem;">Existing Capabilities</h4>
+      <div>
+        <span class="tag tag-green">Transcript Cleaning</span>
+        <span class="tag tag-green">WER Calculation</span>
+        <span class="tag tag-green">Word Alignment</span>
+        <span class="tag tag-green">ASR (Whisper, YiddishLabs)</span>
+        <span class="tag tag-green">LLM Cleaning (Anthropic, OpenAI, Google, Groq)</span>
+        <span class="tag tag-green">Benchmarking</span>
+        <span class="tag tag-green">Training Versions</span>
+        <span class="tag tag-green">Google Drive Import</span>
+        <span class="tag tag-yellow">Audio-Transcript Linking</span>
+      </div>
+    </div>
+
+    <!-- REPO 2: yiddish-mapping -->
+    <div class="repo-card source1">
+      <div class="repo-role">Source &mdash; will merge into destination</div>
+      <h3>yiddish-mapping</h3>
+      <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.75rem;">Static SPA for matching 4,669 audio files with 1,065 transcripts using date/keyword hybrid matching algorithm.</p>
+      <h4 style="font-size:0.8rem;margin-bottom:0.4rem;">Tech Stack</h4>
+      <div style="margin-bottom:0.75rem;">
+        <span class="tag tag-blue">Vanilla JS (620 lines)</span>
+        <span class="tag tag-blue">Static HTML</span>
+        <span class="tag tag-blue">Cloudflare Pages</span>
+        <span class="tag tag-blue">localStorage</span>
+        <span class="tag tag-blue">JSON data file (246KB)</span>
+        <span class="tag tag-purple">Python cleanup script</span>
+      </div>
+      <h4 style="font-size:0.8rem;margin-bottom:0.4rem;">Data Model (data.json)</h4>
+      <ul class="file-list">
+        <li><code>allAudio[4669]</code> &mdash; name, link (Drive), year, month, day, estMinutes</li>
+        <li><code>allTranscripts[1065]</code> &mdash; name, link (Drive), year, month, day, firstLine</li>
+        <li><code>matched[1809]</code> &mdash; verified audio-transcript pairs</li>
+        <li><code>selected[423]</code> &mdash; curated 50-hour subset</li>
+        <li><code>unmatchedAudio[2860]</code> &mdash; with suggestedMatches (score, reason)</li>
+        <li><code>unmatchedTranscripts[447]</code> &mdash; with suggestedMatches</li>
+      </ul>
+      <h4 style="font-size:0.8rem;margin-top:0.75rem;margin-bottom:0.4rem;">Key Features</h4>
+      <div>
+        <span class="tag tag-blue">Hybrid Date+Keyword Matching</span>
+        <span class="tag tag-blue">Confidence Scoring (0-1)</span>
+        <span class="tag tag-blue">Manual Match Override</span>
+        <span class="tag tag-blue">Bidirectional Search Modal</span>
+        <span class="tag tag-blue">CSV Export</span>
+        <span class="tag tag-blue">Sortable/Filterable Tables</span>
+        <span class="tag tag-blue">Hebrew Calendar Support</span>
+      </div>
+    </div>
+
+    <!-- REPO 3: yiddish-audio-alignment -->
+    <div class="repo-card source2">
+      <div class="repo-role">Source &mdash; will merge into destination</div>
+      <h3>yiddish-audio-alignment</h3>
+      <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:0.75rem;">Python Flask application for Yiddish transcript cleaning and confusion-aware audio-text alignment using stable-ts / faster-whisper.</p>
+      <h4 style="font-size:0.8rem;margin-bottom:0.4rem;">Tech Stack</h4>
+      <div style="margin-bottom:0.75rem;">
+        <span class="tag tag-orange">Python 3 / Flask</span>
+        <span class="tag tag-orange">stable-ts / faster-whisper</span>
+        <span class="tag tag-orange">RunPod Serverless</span>
+        <span class="tag tag-orange">Docker</span>
+        <span class="tag tag-orange">Google Drive API</span>
+        <span class="tag tag-purple">LLM Cleaning (OpenAI, Anthropic, Google)</span>
+      </div>
+      <h4 style="font-size:0.8rem;margin-bottom:0.4rem;">Key Components</h4>
+      <ul class="file-list">
+        <li><code>alignment/align.py</code> &mdash; confusion-aware algorithm (ivrit-ai adapted for Yiddish)</li>
+        <li><code>alignment/breakable_aligner.py</code> &mdash; chunked alignment with skip logic</li>
+        <li><code>alignment/seekable_audio_loader.py</code> &mdash; streaming audio loading</li>
+        <li><code>blueprints/alignment_bp.py</code> &mdash; Flask REST API (/api/alignment/align, /transcribe)</li>
+        <li><code>processors/*.py</code> &mdash; 8 cleaning processors (brackets, editorial, whitespace, etc.)</li>
+        <li><code>runpod/handler.py</code> &mdash; RunPod serverless GPU handler</li>
+        <li><code>runpod_client.py</code> &mdash; Client for RunPod alignment service</li>
+      </ul>
+      <h4 style="font-size:0.8rem;margin-top:0.75rem;margin-bottom:0.4rem;">Key Features</h4>
+      <div>
+        <span class="tag tag-orange">Word-Level Timestamps</span>
+        <span class="tag tag-orange">Confusion Zone Detection</span>
+        <span class="tag tag-orange">RunPod GPU Offloading</span>
+        <span class="tag tag-orange">Batch Sheet Processing</span>
+        <span class="tag tag-orange">Diff Generation</span>
+        <span class="tag tag-orange">Clean Rate Calculation</span>
+        <span class="tag tag-orange">DOCX/TXT Output</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: TARGET ARCHITECTURE -->
+<!-- ============================================================ -->
+<section id="target-arch">
+  <h2><span class="sec-num">2</span> Target Architecture &mdash; Unified System</h2>
+
+  <div class="diagram-wrapper">
+    <svg viewBox="0 0 1000 600" width="100%" style="max-width:1000px;">
+      <!-- Background -->
+      <defs>
+        <linearGradient id="gGreen" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#34d399;stop-opacity:0.15"/><stop offset="100%" style="stop-color:#2dd4bf;stop-opacity:0.08"/></linearGradient>
+        <linearGradient id="gBlue" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#60a5fa;stop-opacity:0.12"/><stop offset="100%" style="stop-color:#a78bfa;stop-opacity:0.08"/></linearGradient>
+        <linearGradient id="gOrange" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#fb923c;stop-opacity:0.12"/><stop offset="100%" style="stop-color:#fbbf24;stop-opacity:0.08"/></linearGradient>
+        <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.3"/></filter>
+      </defs>
+
+      <!-- Title -->
+      <text x="500" y="30" text-anchor="middle" fill="#e2e8f0" font-size="16" font-weight="700">Unified yiddish-cleaner Architecture</text>
+
+      <!-- Main container -->
+      <rect x="20" y="45" width="960" height="540" rx="16" fill="none" stroke="#2a3352" stroke-width="1.5" stroke-dasharray="6,4"/>
+      <text x="40" y="70" fill="#8892b0" font-size="11" font-weight="600">YIDDISH-CLEANER (Laravel 12 + Vue 3 + Python Microservice)</text>
+
+      <!-- Frontend Layer -->
+      <rect x="40" y="85" width="920" height="115" rx="12" fill="url(#gGreen)" stroke="#34d399" stroke-width="1" opacity="0.9"/>
+      <text x="60" y="108" fill="#34d399" font-size="12" font-weight="700">FRONTEND &mdash; Vue 3 + Inertia.js v2 + Tailwind CSS 4</text>
+
+      <rect x="60" y="118" width="170" height="55" rx="8" fill="#131825" stroke="#2a3352" filter="url(#shadow)"/>
+      <text x="145" y="140" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="600">Mapping Interface</text>
+      <text x="145" y="158" text-anchor="middle" fill="#8892b0" font-size="9">[from yiddish-mapping]</text>
+
+      <rect x="250" y="118" width="170" height="55" rx="8" fill="#131825" stroke="#2a3352" filter="url(#shadow)"/>
+      <text x="335" y="140" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">Cleaning / Review UI</text>
+      <text x="335" y="158" text-anchor="middle" fill="#8892b0" font-size="9">[existing]</text>
+
+      <rect x="440" y="118" width="170" height="55" rx="8" fill="#131825" stroke="#2a3352" filter="url(#shadow)"/>
+      <text x="525" y="140" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">Benchmark Dashboard</text>
+      <text x="525" y="158" text-anchor="middle" fill="#8892b0" font-size="9">[existing]</text>
+
+      <rect x="630" y="118" width="155" height="55" rx="8" fill="#131825" stroke="#2a3352" filter="url(#shadow)"/>
+      <text x="707" y="140" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">Training Manager</text>
+      <text x="707" y="158" text-anchor="middle" fill="#8892b0" font-size="9">[existing]</text>
+
+      <rect x="800" y="118" width="145" height="55" rx="8" fill="#131825" stroke="#2a3352" filter="url(#shadow)"/>
+      <text x="872" y="140" text-anchor="middle" fill="#f472b6" font-size="10" font-weight="600">Karaoke / Diff</text>
+      <text x="872" y="158" text-anchor="middle" fill="#8892b0" font-size="9">[from alignment]</text>
+
+      <!-- Backend Layer -->
+      <rect x="40" y="215" width="560" height="180" rx="12" fill="url(#gBlue)" stroke="#60a5fa" stroke-width="1" opacity="0.9"/>
+      <text x="60" y="238" fill="#60a5fa" font-size="12" font-weight="700">LARAVEL BACKEND &mdash; PHP 8.4 + Eloquent + Queue</text>
+
+      <rect x="60" y="248" width="120" height="45" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="120" y="268" text-anchor="middle" fill="#e2e8f0" font-size="9" font-weight="600">Controllers</text>
+      <text x="120" y="282" text-anchor="middle" fill="#8892b0" font-size="8">+ MappingController</text>
+
+      <rect x="195" y="248" width="120" height="45" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="255" y="268" text-anchor="middle" fill="#e2e8f0" font-size="9" font-weight="600">Services</text>
+      <text x="255" y="282" text-anchor="middle" fill="#8892b0" font-size="8">Cleaning, ASR, LLM</text>
+
+      <rect x="330" y="248" width="120" height="45" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="390" y="268" text-anchor="middle" fill="#e2e8f0" font-size="9" font-weight="600">Jobs (Queue)</text>
+      <text x="390" y="282" text-anchor="middle" fill="#8892b0" font-size="8">Align, Clean, Import</text>
+
+      <rect x="465" y="248" width="120" height="45" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="525" y="268" text-anchor="middle" fill="#e2e8f0" font-size="9" font-weight="600">Match Engine</text>
+      <text x="525" y="282" text-anchor="middle" fill="#60a5fa" font-size="8">[from mapping]</text>
+
+      <rect x="60" y="310" width="525" height="70" rx="6" fill="rgba(96,165,250,0.06)" stroke="#2a3352"/>
+      <text x="75" y="330" fill="#8892b0" font-size="10" font-weight="600">Eloquent Models</text>
+      <text x="75" y="350" fill="#e2e8f0" font-size="9">AudioSample | Transcription | TranscriptionWord | Mapping | TrainingVersion | BenchmarkResult</text>
+      <text x="75" y="367" fill="#60a5fa" font-size="8">+ AudioTranscriptMapping (new M2M with confidence, match_source, match_reason) | MappingSuggestion (new)</text>
+
+      <!-- Python Service -->
+      <rect x="620" y="215" width="340" height="180" rx="12" fill="url(#gOrange)" stroke="#fb923c" stroke-width="1" opacity="0.9"/>
+      <text x="640" y="238" fill="#fb923c" font-size="12" font-weight="700">PYTHON ALIGNMENT SERVICE</text>
+      <text x="640" y="253" fill="#8892b0" font-size="9">[from yiddish-audio-alignment &mdash; runs as sidecar/subprocess]</text>
+
+      <rect x="640" y="265" width="145" height="40" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="712" y="283" text-anchor="middle" fill="#e2e8f0" font-size="9" font-weight="600">stable-ts Aligner</text>
+      <text x="712" y="296" text-anchor="middle" fill="#8892b0" font-size="8">Confusion-Aware</text>
+
+      <rect x="800" y="265" width="145" height="40" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="872" y="283" text-anchor="middle" fill="#e2e8f0" font-size="9" font-weight="600">RunPod Client</text>
+      <text x="872" y="296" text-anchor="middle" fill="#8892b0" font-size="8">GPU Offloading</text>
+
+      <rect x="640" y="318" width="305" height="40" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="792" y="336" text-anchor="middle" fill="#e2e8f0" font-size="9" font-weight="600">Flask API &mdash; /api/alignment/align &amp; /transcribe</text>
+      <text x="792" y="351" text-anchor="middle" fill="#8892b0" font-size="8">Called by Laravel via HTTP or subprocess</text>
+
+      <rect x="640" y="367" width="305" height="22" rx="4" fill="rgba(251,146,60,0.1)" stroke="#2a3352"/>
+      <text x="792" y="382" text-anchor="middle" fill="#fb923c" font-size="8" font-weight="600">Docker Container | yi-whisper-large-v3-turbo-ct2 | CUDA</text>
+
+      <!-- Database Layer -->
+      <rect x="40" y="410" width="920" height="85" rx="12" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-width="1" opacity="0.9"/>
+      <text x="60" y="433" fill="#a78bfa" font-size="12" font-weight="700">DATABASE &mdash; MySQL/PostgreSQL (unified schema)</text>
+
+      <rect x="60" y="443" width="115" height="38" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="117" y="461" text-anchor="middle" fill="#e2e8f0" font-size="9">audio_samples</text>
+      <text x="117" y="474" text-anchor="middle" fill="#34d399" font-size="7">EXISTING</text>
+
+      <rect x="185" y="443" width="115" height="38" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="242" y="461" text-anchor="middle" fill="#e2e8f0" font-size="9">transcriptions</text>
+      <text x="242" y="474" text-anchor="middle" fill="#34d399" font-size="7">EXISTING</text>
+
+      <rect x="310" y="443" width="140" height="38" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="380" y="461" text-anchor="middle" fill="#e2e8f0" font-size="9">transcription_words</text>
+      <text x="380" y="474" text-anchor="middle" fill="#34d399" font-size="7">EXISTING</text>
+
+      <rect x="460" y="443" width="175" height="38" rx="6" fill="#131825" stroke="#2a3352"/>
+      <text x="547" y="461" text-anchor="middle" fill="#e2e8f0" font-size="9">audio_sample_transcription</text>
+      <text x="547" y="474" text-anchor="middle" fill="#34d399" font-size="7">EXISTING (M2M PIVOT)</text>
+
+      <rect x="645" y="443" width="145" height="38" rx="6" fill="#131825" stroke="#60a5fa"/>
+      <text x="717" y="461" text-anchor="middle" fill="#60a5fa" font-size="9">audio_transcript_maps</text>
+      <text x="717" y="474" text-anchor="middle" fill="#60a5fa" font-size="7">NEW (FROM MAPPING)</text>
+
+      <rect x="800" y="443" width="145" height="38" rx="6" fill="#131825" stroke="#60a5fa"/>
+      <text x="872" y="461" text-anchor="middle" fill="#60a5fa" font-size="9">mapping_suggestions</text>
+      <text x="872" y="474" text-anchor="middle" fill="#60a5fa" font-size="7">NEW (FROM MAPPING)</text>
+
+      <!-- Storage -->
+      <rect x="40" y="505" width="920" height="65" rx="12" fill="rgba(45,212,191,0.06)" stroke="#2dd4bf" stroke-width="1" opacity="0.9"/>
+      <text x="60" y="528" fill="#2dd4bf" font-size="12" font-weight="700">STORAGE &amp; EXTERNAL SERVICES</text>
+      <rect x="60" y="537" width="125" height="25" rx="4" fill="#131825" stroke="#2a3352"/>
+      <text x="122" y="554" text-anchor="middle" fill="#e2e8f0" font-size="9">Spatie Media (S3)</text>
+      <rect x="200" y="537" width="110" height="25" rx="4" fill="#131825" stroke="#2a3352"/>
+      <text x="255" y="554" text-anchor="middle" fill="#e2e8f0" font-size="9">Google Drive</text>
+      <rect x="325" y="537" width="100" height="25" rx="4" fill="#131825" stroke="#2a3352"/>
+      <text x="375" y="554" text-anchor="middle" fill="#e2e8f0" font-size="9">RunPod GPU</text>
+      <rect x="440" y="537" width="130" height="25" rx="4" fill="#131825" stroke="#2a3352"/>
+      <text x="505" y="554" text-anchor="middle" fill="#e2e8f0" font-size="9">LLM APIs (Multi)</text>
+      <rect x="585" y="537" width="140" height="25" rx="4" fill="#131825" stroke="#2a3352"/>
+      <text x="655" y="554" text-anchor="middle" fill="#e2e8f0" font-size="9">Laravel Queue (Redis)</text>
+      <rect x="740" y="537" width="125" height="25" rx="4" fill="#131825" stroke="#2a3352"/>
+      <text x="802" y="554" text-anchor="middle" fill="#e2e8f0" font-size="9">Reverb WebSocket</text>
+
+      <!-- Connection arrows -->
+      <line x1="580" y1="295" x2="640" y2="295" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrowO)"/>
+      <defs>
+        <marker id="arrowO" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#fb923c"/></marker>
+        <marker id="arrowB" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#60a5fa"/></marker>
+      </defs>
+    </svg>
+  </div>
+
+  <div class="card">
+    <h4>Key Design Decisions</h4>
+    <ul style="font-size:0.85rem;color:var(--text-dim);list-style:disc;padding-left:1.5rem;">
+      <li><strong>Python as sidecar, not rewrite:</strong> The alignment code uses stable-ts, faster-whisper, torch, and CUDA. Rewriting in PHP would be impractical. The Python service runs as a Docker container or subprocess, called by Laravel via HTTP.</li>
+      <li><strong>Mapping logic moves to Laravel:</strong> The matching algorithm (date+keyword scoring) is simple enough to port to PHP. The frontend becomes a Vue/Inertia page with server-side filtering and pagination instead of client-side JSON.</li>
+      <li><strong>Database is the single source of truth:</strong> The static data.json from yiddish-mapping is imported into the database. All mapping state persists server-side with user attribution, not in localStorage.</li>
+      <li><strong>M2M pivot already exists:</strong> The <code>audio_sample_transcription</code> pivot table in yiddish-cleaner already supports many-to-many audio-transcript relationships, which is the foundation for mapping data.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 3: INTEGRATION LAYERS -->
+<!-- ============================================================ -->
+<section id="integration-layers">
+  <h2><span class="sec-num">3</span> Integration Layers</h2>
+
+  <!-- Layer A: Frontend -->
+  <div class="collapsible open" onclick="this.classList.toggle('open')">
+    <div class="collapsible-header">
+      <h4 style="color:var(--green);">A. Frontend Integration &mdash; Mapping JS becomes Vue/Inertia Pages</h4>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-body-inner">
+        <table class="data-table">
+          <thead>
+            <tr><th>Mapping Feature (Vanilla JS)</th><th>Unified Implementation (Vue 3 + Inertia)</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Stats dashboard (6 cards)</td><td><code>Dashboard.vue</code> &mdash; extend existing dashboard with mapping stats</td><td><span class="status status-partial">Partial</span></td></tr>
+            <tr><td>50-Hour Selection tab</td><td>New <code>pages/Mapping/Selection.vue</code> with DataTable</td><td><span class="status status-missing">New</span></td></tr>
+            <tr><td>All Matched tab</td><td>New <code>pages/Mapping/Matched.vue</code> with server-side pagination</td><td><span class="status status-missing">New</span></td></tr>
+            <tr><td>Unmatched Audio tab + suggestions</td><td>New <code>pages/Mapping/UnmatchedAudio.vue</code> with inline suggestion cards</td><td><span class="status status-missing">New</span></td></tr>
+            <tr><td>Unmatched Transcripts tab</td><td>New <code>pages/Mapping/UnmatchedTranscripts.vue</code></td><td><span class="status status-missing">New</span></td></tr>
+            <tr><td>Full-screen search modal</td><td>New <code>components/mapping/SearchModal.vue</code> using existing Dialog UI</td><td><span class="status status-missing">New</span></td></tr>
+            <tr><td>Sort/filter/pagination (client-side)</td><td>Server-side via Inertia deferred props + Eloquent query scopes</td><td><span class="status status-exists">Pattern exists</span></td></tr>
+            <tr><td>localStorage persistence</td><td>Database persistence with user attribution + real-time sync via Reverb</td><td><span class="status status-exists">Infra exists</span></td></tr>
+            <tr><td>CSV export</td><td>Laravel controller endpoint returning streamed CSV</td><td><span class="status status-exists">Pattern exists</span></td></tr>
+            <tr><td>Confidence score coloring</td><td>Vue component with Tailwind conditional classes</td><td><span class="status status-missing">New</span></td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:0.82rem;color:var(--text-dim);margin-top:0.75rem;"><strong>Alignment UI additions:</strong> Karaoke mode (word highlighting synced with audio playback) and diff viewer from yiddish-audio-alignment's architecture become new Vue components: <code>KaraokePlayer.vue</code> and <code>DiffViewer.vue</code>, integrated into the existing <code>Transcriptions/Show.vue</code> page.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer B: Python Service -->
+  <div class="collapsible open" onclick="this.classList.toggle('open')">
+    <div class="collapsible-header">
+      <h4 style="color:var(--orange);">B. Python Alignment Service &mdash; Microservice called by Laravel</h4>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-body-inner">
+        <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:0.75rem;">Laravel already has <code>AlignmentManager</code>, <code>AlignmentDriverInterface</code>, and <code>AlignmentResult</code> in <code>app/Services/Alignment/</code>. The integration adds a new driver:</p>
+        <table class="data-table">
+          <thead>
+            <tr><th>Component</th><th>Current Location (alignment repo)</th><th>Integration Approach</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Flask API server</td><td><code>app.py</code> + <code>blueprints/alignment_bp.py</code></td><td>Runs as Docker sidecar; Laravel calls via HTTP. New <code>StableTsDriver</code> added to <code>AlignmentManager</code></td></tr>
+            <tr><td>Confusion-aware aligner</td><td><code>alignment/align.py</code></td><td>Stays as Python &mdash; no change. Exposed via Flask /api/alignment/align endpoint</td></tr>
+            <tr><td>RunPod GPU offloading</td><td><code>runpod_client.py</code> + <code>runpod/handler.py</code></td><td>Stays as Python &mdash; Flask checks RUNPOD_* env vars and routes to GPU if available</td></tr>
+            <tr><td>Audio loader</td><td><code>alignment/seekable_audio_loader.py</code></td><td>Stays as Python internal dependency</td></tr>
+            <tr><td>Cleaning processors</td><td><code>processors/*.py</code> (8 processors)</td><td>Already ported to PHP in <code>app/Services/Cleaning/Processors/</code> &mdash; <strong>no migration needed</strong></td></tr>
+            <tr><td>Clean rate calculator</td><td><code>clean_rate.py</code></td><td>Already ported to PHP in <code>app/Services/Cleaning/CleanRateCalculator.php</code></td></tr>
+            <tr><td>Diff utilities</td><td><code>diff_utils.py</code></td><td>Already ported to PHP in <code>app/Services/Cleaning/DiffService.php</code></td></tr>
+            <tr><td>LLM processing</td><td><code>llm_processor.py</code></td><td>Already exists in Laravel: <code>app/Services/Llm/</code> with 5 drivers</td></tr>
+            <tr><td>Document processor</td><td><code>document_processor.py</code></td><td>Already exists: <code>app/Services/Document/DocxParserService.php</code></td></tr>
+            <tr><td>Google Drive download</td><td><code>drive_downloader.py</code></td><td>Already exists: <code>app/Services/Google/DriveService.php</code></td></tr>
+          </tbody>
+        </table>
+        <div class="card" style="margin-top:1rem;background:var(--surface3);border-color:var(--orange);">
+          <h4 style="color:var(--orange);font-size:0.85rem;">New Laravel Driver: StableTsAlignmentDriver</h4>
+          <pre style="font-size:0.78rem;color:var(--text-dim);overflow-x:auto;padding:0.5rem;background:var(--bg);border-radius:6px;margin-top:0.5rem;"><code>// app/Services/Alignment/Drivers/StableTsDriver.php
+class StableTsDriver implements AlignmentDriverInterface
+{
+    public function __construct(
+        private string $baseUrl = 'http://localhost:5050',  // Python sidecar
+        private ?string $apiKey = null,
+    ) {}
+
+    public function align(string $audioPath, string $text, array $options = []): AlignmentResult
+    {
+        // POST to {baseUrl}/api/alignment/align with multipart: audio file + text
+        // Returns: { segments: [...], timestamps: [...], full_text: "..." }
+        // Map to AlignmentResult with AlignedWord objects
+    }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer C: Database Schema -->
+  <div class="collapsible open" onclick="this.classList.toggle('open')">
+    <div class="collapsible-header">
+      <h4 style="color:var(--accent2);">C. Database Schema Merge</h4>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-body-inner">
+        <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:0.75rem;">The mapping repo uses a flat JSON file. The alignment repo has no persistent database. All data consolidates into the existing Laravel schema with minimal new tables.</p>
+        <h4 style="font-size:0.85rem;margin-top:0.5rem;">New Migration: Mapping Tables</h4>
+        <table class="data-table">
+          <thead><tr><th>Table</th><th>Columns</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>audio_transcript_mappings</code></td>
+              <td><code>id, audio_sample_id (FK), transcription_id (FK nullable), external_audio_name, external_transcript_name, external_audio_link, external_transcript_link, confidence_score (float), match_source (enum: algorithm/manual/imported), match_reason (text), matched_by (FK users), verified_at, is_in_50hr_selection (bool), hebrew_year, hebrew_month, hebrew_day, content_type (enum: sicha/maamar/farbrengen), est_minutes (float), timestamps</code></td>
+              <td>Stores all audio-transcript mappings (imported from data.json + new matches). Links to internal AudioSample/Transcription when they exist in the system.</td>
+            </tr>
+            <tr>
+              <td><code>mapping_suggestions</code></td>
+              <td><code>id, mapping_id (FK), suggested_name, suggested_link, score (float), match_reason, is_audio (bool), selected_at, selected_by (FK users), timestamps</code></td>
+              <td>Stores algorithm-generated suggestions for unmatched items. Tracks which suggestion was selected.</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4 style="font-size:0.85rem;margin-top:1rem;">Existing Tables (No Changes Needed)</h4>
+        <table class="data-table">
+          <thead><tr><th>Table</th><th>Relevance</th></tr></thead>
+          <tbody>
+            <tr><td><code>audio_samples</code></td><td>Already has name, source_url, audio_duration, status, is_benchmark</td></tr>
+            <tr><td><code>transcriptions</code></td><td>Already has type (base/asr), text_raw, text_clean, cleaning metrics, alignment status, WER</td></tr>
+            <tr><td><code>audio_sample_transcription</code></td><td>M2M pivot already exists &mdash; confirmed audio-transcript links go here</td></tr>
+            <tr><td><code>transcription_words</code></td><td>Word-level timestamps from alignment service get stored here</td></tr>
+            <tr><td><code>transcription_segments</code></td><td>Segment-level data from alignment/ASR</td></tr>
+            <tr><td><code>training_versions</code></td><td>Training dataset management already built</td></tr>
+          </tbody>
+        </table>
+        <h4 style="font-size:0.85rem;margin-top:1rem;">Data Import: data.json to Database</h4>
+        <p style="font-size:0.82rem;color:var(--text-dim);">A one-time artisan command (<code>php artisan mapping:import</code>) reads the 246KB data.json and creates: 1,809 confirmed mapping rows + 2,860 unmatched audio entries with their suggestions + 447 unmatched transcript entries. The 423 curated 50-hour items are flagged via <code>is_in_50hr_selection</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layer D: API Consolidation -->
+  <div class="collapsible open" onclick="this.classList.toggle('open')">
+    <div class="collapsible-header">
+      <h4 style="color:var(--cyan);">D. API Endpoint Consolidation</h4>
+      <span class="chevron">&#9660;</span>
+    </div>
+    <div class="collapsible-body">
+      <div class="collapsible-body-inner">
+        <table class="data-table">
+          <thead><tr><th>Source Repo</th><th>Original Endpoint</th><th>Unified Endpoint in yiddish-cleaner</th></tr></thead>
+          <tbody>
+            <tr><td>alignment</td><td><code>POST /api/alignment/align</code></td><td><code>POST /api/alignment/align</code> (proxied to Python sidecar via StableTsDriver)</td></tr>
+            <tr><td>alignment</td><td><code>POST /api/alignment/transcribe</code></td><td><code>POST /audio-samples/{id}/transcribe</code> (existing, add stable-ts provider)</td></tr>
+            <tr><td>alignment</td><td><code>GET /api/alignment/health</code></td><td><code>GET /api/alignment/health</code> (new route, proxied)</td></tr>
+            <tr><td>alignment</td><td><code>POST /upload</code></td><td><code>POST /transcriptions</code> (existing store-base)</td></tr>
+            <tr><td>alignment</td><td><code>POST /process-drive</code></td><td><code>POST /imports</code> (existing import system)</td></tr>
+            <tr><td>alignment</td><td><code>POST /process-llm</code></td><td><code>POST /transcriptions/{id}/clean</code> (existing with LLM driver)</td></tr>
+            <tr><td>mapping</td><td><code>fetch('./data.json')</code></td><td><code>GET /mapping</code> (Inertia page with deferred props)</td></tr>
+            <tr><td>mapping</td><td>localStorage save</td><td><code>POST /mapping/match</code> (new)</td></tr>
+            <tr><td>mapping</td><td>CSV export download</td><td><code>GET /mapping/export</code> (new)</td></tr>
+            <tr><td>mapping</td><td>N/A</td><td><code>GET /api/mapping/suggestions/{id}</code> (new, returns scored suggestions)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 4: DATA FLOW -->
+<!-- ============================================================ -->
+<section id="data-flow">
+  <h2><span class="sec-num">4</span> Data Flow Diagrams</h2>
+
+  <h3>Audio File Lifecycle</h3>
+  <div class="pipeline">
+    <div class="pipeline-stage" style="border-left-color:var(--accent);">
+      <div class="stage-num">1</div>
+      <h5 style="color:var(--accent);">Ingest</h5>
+      <p>Upload MP3/WAV or import from Google Drive. Create AudioSample record. Store via Spatie Media Library (S3).</p>
+    </div>
+    <div class="pipeline-stage">
+      <div class="stage-num">2</div>
+      <h5 style="color:var(--yellow);">Map</h5>
+      <p>Mapping engine suggests transcript matches using date+keyword scoring. User confirms or manually searches. Creates M2M link.</p>
+    </div>
+    <div class="pipeline-stage">
+      <div class="stage-num">3</div>
+      <h5 style="color:var(--orange);">Align</h5>
+      <p>Python service aligns transcript to audio. Word-level timestamps stored in transcription_words. Confidence per word.</p>
+    </div>
+    <div class="pipeline-stage">
+      <div class="stage-num">4</div>
+      <h5 style="color:var(--accent2);">Clean</h5>
+      <p>PHP cleaning processors remove brackets, editorial marks, etc. Clean rate calculated. Diff generated. LLM optional second pass.</p>
+    </div>
+    <div class="pipeline-stage">
+      <div class="stage-num">5</div>
+      <h5 style="color:var(--green);">Review</h5>
+      <p>JEM reviews cleaned transcript with diff viewer + karaoke mode. Approves or requests re-clean. Validates transcription.</p>
+    </div>
+    <div class="pipeline-stage" style="border-right-color:var(--teal);">
+      <div class="stage-num">6</div>
+      <h5 style="color:var(--teal);">Classify</h5>
+      <p>Benchmark samples flagged as gold standard. Training-ready samples added to training versions. ASR models tested.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:2rem;">Transcript Version Flow</h3>
+  <div class="diagram-wrapper">
+    <svg viewBox="0 0 900 280" width="100%" style="max-width:900px;">
+      <defs>
+        <marker id="arrG" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#34d399"/></marker>
+        <marker id="arrA" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#60a5fa"/></marker>
+        <marker id="arrY" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#fbbf24"/></marker>
+        <marker id="arrP" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#a78bfa"/></marker>
+      </defs>
+
+      <!-- Audio Sample -->
+      <rect x="10" y="100" width="120" height="60" rx="10" fill="#131825" stroke="#2dd4bf" stroke-width="1.5"/>
+      <text x="70" y="126" text-anchor="middle" fill="#2dd4bf" font-size="11" font-weight="700">AudioSample</text>
+      <text x="70" y="144" text-anchor="middle" fill="#8892b0" font-size="9">source audio file</text>
+
+      <!-- Lines out -->
+      <line x1="130" y1="115" x2="200" y2="60" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrG)"/>
+      <line x1="130" y1="130" x2="200" y2="130" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrA)"/>
+      <line x1="130" y1="145" x2="200" y2="200" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrY)"/>
+      <line x1="130" y1="150" x2="200" y2="250" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrP)"/>
+
+      <!-- Base Transcription -->
+      <rect x="200" y="35" width="175" height="50" rx="8" fill="#131825" stroke="#34d399"/>
+      <text x="287" y="56" text-anchor="middle" fill="#34d399" font-size="10" font-weight="600">Base (Manual) Transcript</text>
+      <text x="287" y="72" text-anchor="middle" fill="#8892b0" font-size="8">type=base, imported DOCX</text>
+
+      <!-- ASR Whisper -->
+      <rect x="200" y="105" width="175" height="50" rx="8" fill="#131825" stroke="#60a5fa"/>
+      <text x="287" y="126" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="600">ASR: Whisper</text>
+      <text x="287" y="142" text-anchor="middle" fill="#8892b0" font-size="8">type=asr, model=whisper-large-v3</text>
+
+      <!-- ASR Gemini -->
+      <rect x="200" y="175" width="175" height="50" rx="8" fill="#131825" stroke="#fbbf24"/>
+      <text x="287" y="196" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">ASR: YiddishLabs</text>
+      <text x="287" y="212" text-anchor="middle" fill="#8892b0" font-size="8">type=asr, model=yiddish-labs</text>
+
+      <!-- Manual -->
+      <rect x="200" y="230" width="175" height="50" rx="8" fill="#131825" stroke="#a78bfa"/>
+      <text x="287" y="251" text-anchor="middle" fill="#a78bfa" font-size="10" font-weight="600">Manual Correction</text>
+      <text x="287" y="267" text-anchor="middle" fill="#8892b0" font-size="8">type=asr, source=manual</text>
+
+      <!-- WER Comparison arrows -->
+      <line x1="375" y1="60" x2="430" y2="60" stroke="#34d399" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="375" y1="130" x2="430" y2="130" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="375" y1="200" x2="430" y2="200" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- WER box -->
+      <rect x="430" y="75" width="160" height="110" rx="10" fill="rgba(248,113,113,0.08)" stroke="#f87171"/>
+      <text x="510" y="100" text-anchor="middle" fill="#f87171" font-size="11" font-weight="700">WER Comparison</text>
+      <text x="510" y="120" text-anchor="middle" fill="#8892b0" font-size="9">reference = base transcript</text>
+      <text x="510" y="138" text-anchor="middle" fill="#8892b0" font-size="9">hypothesis = ASR output</text>
+      <text x="510" y="156" text-anchor="middle" fill="#8892b0" font-size="9">Subs + Ins + Del / Ref Words</text>
+      <text x="510" y="174" text-anchor="middle" fill="#f87171" font-size="9" font-weight="600">+ Custom WER (critical only)</text>
+
+      <!-- Output -->
+      <line x1="590" y1="130" x2="650" y2="130" stroke="#f87171" stroke-width="1.5" marker-end="url(#arrG)"/>
+      <rect x="650" y="85" width="220" height="90" rx="10" fill="#131825" stroke="#34d399"/>
+      <text x="760" y="110" text-anchor="middle" fill="#34d399" font-size="11" font-weight="700">Word-Level Review</text>
+      <text x="760" y="130" text-anchor="middle" fill="#8892b0" font-size="9">TranscriptionWord records</text>
+      <text x="760" y="148" text-anchor="middle" fill="#8892b0" font-size="9">timestamps + confidence + corrections</text>
+      <text x="760" y="164" text-anchor="middle" fill="#f472b6" font-size="9" font-weight="600">Karaoke playback mode</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 5: MIGRATION MAP -->
+<!-- ============================================================ -->
+<section id="migration-map">
+  <h2><span class="sec-num">5</span> Component Migration Map</h2>
+
+  <div class="grid-2">
+    <div>
+      <h3 style="color:var(--accent);">From yiddish-mapping</h3>
+      <table class="data-table">
+        <thead><tr><th>Source File</th><th>Destination in yiddish-cleaner</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><code>public/index.html</code><br>(620 lines SPA)</td><td>Split into multiple Vue pages:<br><code>pages/Mapping/Index.vue</code><br><code>pages/Mapping/Selection.vue</code><br><code>pages/Mapping/UnmatchedAudio.vue</code><br><code>pages/Mapping/UnmatchedTranscripts.vue</code></td><td><span class="tag tag-blue">Rewrite to Vue</span></td></tr>
+          <tr><td><code>public/data.json</code><br>(246KB static data)</td><td><code>database/seeders/MappingDataSeeder.php</code><br>+ artisan import command</td><td><span class="tag tag-purple">Import to DB</span></td></tr>
+          <tr><td>Matching algorithm<br>(date+keyword JS)</td><td><code>app/Services/Mapping/MatchingService.php</code></td><td><span class="tag tag-blue">Port to PHP</span></td></tr>
+          <tr><td>Confidence scoring</td><td><code>app/Services/Mapping/ConfidenceCalculator.php</code></td><td><span class="tag tag-blue">Port to PHP</span></td></tr>
+          <tr><td>CSV export functions</td><td><code>app/Http/Controllers/MappingController.php</code> export method</td><td><span class="tag tag-blue">Port to PHP</span></td></tr>
+          <tr><td><code>update_firstline.py</code></td><td><code>app/Services/Mapping/FirstLineParser.php</code></td><td><span class="tag tag-blue">Port to PHP</span></td></tr>
+          <tr><td>Hebrew calendar parsing</td><td><code>app/Services/Mapping/HebrewDateParser.php</code></td><td><span class="tag tag-blue">Port to PHP</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <h3 style="color:var(--orange);">From yiddish-audio-alignment</h3>
+      <table class="data-table">
+        <thead><tr><th>Source File</th><th>Destination in yiddish-cleaner</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><code>alignment/*.py</code><br>(4 files, core ML)</td><td><code>services/python-alignment/alignment/</code><br>(Docker sidecar)</td><td><span class="tag tag-green">Keep as Python</span></td></tr>
+          <tr><td><code>blueprints/alignment_bp.py</code></td><td><code>services/python-alignment/app.py</code><br>(Docker sidecar API)</td><td><span class="tag tag-green">Keep as Python</span></td></tr>
+          <tr><td><code>runpod/</code> + <code>runpod_client.py</code></td><td><code>services/python-alignment/runpod/</code></td><td><span class="tag tag-green">Keep as Python</span></td></tr>
+          <tr><td><code>Dockerfile</code></td><td><code>services/python-alignment/Dockerfile</code></td><td><span class="tag tag-green">Keep as-is</span></td></tr>
+          <tr><td><code>processors/*.py</code></td><td>N/A &mdash; already in PHP as <code>app/Services/Cleaning/Processors/</code></td><td><span class="tag tag-teal">Already ported</span></td></tr>
+          <tr><td><code>clean_rate.py</code></td><td>N/A &mdash; <code>app/Services/Cleaning/CleanRateCalculator.php</code></td><td><span class="tag tag-teal">Already ported</span></td></tr>
+          <tr><td><code>diff_utils.py</code></td><td>N/A &mdash; <code>app/Services/Cleaning/DiffService.php</code></td><td><span class="tag tag-teal">Already ported</span></td></tr>
+          <tr><td><code>llm_processor.py</code></td><td>N/A &mdash; <code>app/Services/Llm/</code> (5 drivers)</td><td><span class="tag tag-teal">Already ported</span></td></tr>
+          <tr><td><code>document_processor.py</code></td><td>N/A &mdash; <code>app/Services/Document/</code></td><td><span class="tag tag-teal">Already ported</span></td></tr>
+          <tr><td><code>drive_downloader.py</code></td><td>N/A &mdash; <code>app/Services/Google/DriveService.php</code></td><td><span class="tag tag-teal">Already ported</span></td></tr>
+          <tr><td><code>templates/index.html</code></td><td>Karaoke features integrated into Vue components</td><td><span class="tag tag-blue">Rewrite to Vue</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 6: PIPELINES -->
+<!-- ============================================================ -->
+<section id="pipelines">
+  <h2><span class="sec-num">6</span> Three Pipeline Visualization</h2>
+
+  <!-- Benchmark Pipeline -->
+  <div class="card" style="border-left:3px solid var(--green);">
+    <h3 style="color:var(--green);">Benchmark Pipeline</h3>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:1rem;">Gold standard audio samples used to evaluate ASR model accuracy. These are never used for training.</p>
+    <div class="pipeline">
+      <div class="pipeline-stage" style="border-color:var(--green);">
+        <div class="stage-num">STEP 1</div>
+        <h5 style="color:var(--green);">Select Gold Audio</h5>
+        <p>Mark audio samples as <code>is_benchmark=true</code>. Must have validated base transcription.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--green);">
+        <div class="stage-num">STEP 2</div>
+        <h5 style="color:var(--green);">Validate Transcript</h5>
+        <p>Base transcription must be cleaned and validated. This becomes the reference truth.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--green);">
+        <div class="stage-num">STEP 3</div>
+        <h5 style="color:var(--green);">Run ASR Models</h5>
+        <p>Transcribe using Whisper, YiddishLabs, etc. Each creates an ASR transcription record.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--green);">
+        <div class="stage-num">STEP 4</div>
+        <h5 style="color:var(--green);">Calculate WER</h5>
+        <p>Standard WER + Custom WER (critical errors only). Word-level alignment enables karaoke diff.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--green);">
+        <div class="stage-num">STEP 5</div>
+        <h5 style="color:var(--green);">Compare Models</h5>
+        <p>Dashboard shows WER across models. Public benchmark page at /benchmark.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training Pipeline -->
+  <div class="card" style="border-left:3px solid var(--accent);margin-top:1.25rem;">
+    <h3 style="color:var(--accent);">Training Pipeline</h3>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:1rem;">Prepare 50+ hours of clean, aligned audio-transcript pairs for ASR model fine-tuning.</p>
+    <div class="pipeline">
+      <div class="pipeline-stage" style="border-color:var(--red);">
+        <div class="stage-num">STAGE 1</div>
+        <h5 style="color:var(--red);">Needs Cleaning</h5>
+        <p>Raw transcripts imported. Text_raw populated but text_clean is null. Status: pending.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--yellow);">
+        <div class="stage-num">STAGE 2</div>
+        <h5 style="color:var(--yellow);">Cleaned / Waiting</h5>
+        <p>Processors ran. Clean rate calculated. Diff available. Awaiting JEM review. Status: completed.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--green);">
+        <div class="stage-num">STAGE 3</div>
+        <h5 style="color:var(--green);">Approved</h5>
+        <p>JEM reviews diff, uses karaoke mode. Validates transcription (validated_at set). Audio sample status: review.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--accent);">
+        <div class="stage-num">STAGE 4</div>
+        <h5 style="color:var(--accent);">Aligned</h5>
+        <p>Word-level alignment via stable-ts. TranscriptionWord records created with timestamps.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--accent2);">
+        <div class="stage-num">STAGE 5</div>
+        <h5 style="color:var(--accent2);">Training Version</h5>
+        <p>Added to TrainingVersion with criteria. Export as dataset (audio + aligned text segments).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Publishing Pipeline -->
+  <div class="card" style="border-left:3px solid var(--pink);margin-top:1.25rem;">
+    <h3 style="color:var(--pink);">Post-Training / Publishing Pipeline</h3>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-bottom:1rem;">After a model is trained, test it on benchmarks, flag low-confidence outputs, and publish.</p>
+    <div class="pipeline">
+      <div class="pipeline-stage" style="border-color:var(--pink);">
+        <div class="stage-num">STEP 1</div>
+        <h5 style="color:var(--pink);">Load Model</h5>
+        <p>Register new ASR model in system. Configure as provider in asr.php config.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--pink);">
+        <div class="stage-num">STEP 2</div>
+        <h5 style="color:var(--pink);">Run Benchmarks</h5>
+        <p>Transcribe all gold standard audio. Auto-calculate WER against validated reference.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--pink);">
+        <div class="stage-num">STEP 3</div>
+        <h5 style="color:var(--pink);">Confidence Flag</h5>
+        <p>Words below confidence threshold flagged. Segments with many low-confidence words surfaced.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--pink);">
+        <div class="stage-num">STEP 4</div>
+        <h5 style="color:var(--pink);">Human Review</h5>
+        <p>Review flagged words. Mark critical errors. Custom WER recalculated.</p>
+      </div>
+      <div class="pipeline-stage" style="border-color:var(--pink);">
+        <div class="stage-num">STEP 5</div>
+        <h5 style="color:var(--pink);">Publish</h5>
+        <p>If benchmarks pass threshold, publish model. Update public benchmark leaderboard.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 7: USER JOURNEY -->
+<!-- ============================================================ -->
+<section id="user-journey">
+  <h2><span class="sec-num">7</span> JEM ASR User Journey</h2>
+  <p style="color:var(--text-dim);margin-bottom:1.5rem;">End-to-end workflow from raw audio discovery to published ASR model, as experienced by the JEM team.</p>
+
+  <div class="journey-steps">
+    <div class="journey-step">
+      <div class="step-marker" style="background:linear-gradient(135deg,var(--accent),var(--accent2));">1</div>
+      <div class="step-content">
+        <h4>Mapping &mdash; Audio-Transcript Association</h4>
+        <p>Browse the unified mapping interface. The system displays 4,669 audio files and 1,065 transcripts. Smart matching algorithm suggests pairs based on Hebrew date and content type keywords. Confidence scores (0-1) are color-coded green/amber. Accept suggestions or use full-screen search modal for manual matching. Many-to-many relationships supported. Singing and silence segments auto-detected during alignment.</p>
+        <div style="margin-top:0.5rem;"><span class="tag tag-blue">Mapping/Index.vue</span> <span class="tag tag-blue">MappingController</span> <span class="tag tag-blue">MatchingService</span></div>
+      </div>
+    </div>
+    <div class="journey-step">
+      <div class="step-marker" style="background:linear-gradient(135deg,var(--orange),var(--yellow));">2</div>
+      <div class="step-content">
+        <h4>Training Preparation &mdash; 50-Hour Selection + Cleaning Pipeline</h4>
+        <p>Select audio-transcript pairs for the 50-hour training corpus. Each pair enters the cleaning pipeline: <strong>Needs Cleaning</strong> (raw text only) &rarr; <strong>Cleaned/Waiting</strong> (processors ran, awaiting review) &rarr; <strong>Approved</strong> (JEM validated) &rarr; <strong>Sent to Training</strong> (added to TrainingVersion). The review interface shows original vs. cleaned diff, karaoke-mode playback, and per-processor removal statistics. Clean rate scoring (0-100) prioritizes review queue.</p>
+        <div style="margin-top:0.5rem;"><span class="tag tag-orange">CleanerService</span> <span class="tag tag-orange">TranscriptionReview.vue</span> <span class="tag tag-orange">DiffViewer.vue</span> <span class="tag tag-orange">KaraokePlayer.vue</span></div>
+      </div>
+    </div>
+    <div class="journey-step">
+      <div class="step-marker" style="background:linear-gradient(135deg,var(--green),var(--teal));">3</div>
+      <div class="step-content">
+        <h4>Benchmarking &mdash; Gold Standard Management</h4>
+        <p>Designate specific audio samples as gold standard benchmarks (is_benchmark=true). These are strictly separated from training data. Manage the gold standard set via /benchmark/gold-standard. Run multiple ASR models against benchmarks, view WER comparison across models at /benchmark/compare. The system enforces that benchmark samples cannot be added to training versions.</p>
+        <div style="margin-top:0.5rem;"><span class="tag tag-green">BenchmarkController</span> <span class="tag tag-green">GoldStandard.vue</span> <span class="tag tag-green">Compare.vue</span></div>
+      </div>
+    </div>
+    <div class="journey-step">
+      <div class="step-marker" style="background:linear-gradient(135deg,var(--accent2),var(--pink));">4</div>
+      <div class="step-content">
+        <h4>Transcript Versions &mdash; Multiple Outputs Per Audio</h4>
+        <p>Each audio sample can have multiple transcription versions linked via the M2M pivot: the original manual base transcript, one or more ASR outputs (Whisper, YiddishLabs, etc.), and manually corrected versions. WER is calculated between any ASR version and the base reference. Diff comparison lets users see exactly what each ASR got wrong. Karaoke mode highlights words in real-time as audio plays, color-coded by confidence.</p>
+        <div style="margin-top:0.5rem;"><span class="tag tag-purple">AudioSampleTranscription (pivot)</span> <span class="tag tag-purple">WerCalculator</span> <span class="tag tag-purple">TranscriptionWord</span></div>
+      </div>
+    </div>
+    <div class="journey-step">
+      <div class="step-marker" style="background:linear-gradient(135deg,var(--pink),var(--red));">5</div>
+      <div class="step-content">
+        <h4>Post-Training Testing &mdash; Model Evaluation + Publish</h4>
+        <p>After training a new model, register it in the system and run bulk transcription against the benchmark set. The system auto-calculates WER and surfaces words with low confidence for human review. Critical errors are flagged via the word review interface. Custom WER (counting only critical substitutions) gives a more accurate real-world error rate. If the model passes quality thresholds, it enters the publish flow and appears on the public benchmark leaderboard.</p>
+        <div style="margin-top:0.5rem;"><span class="tag tag-red">AsrManager</span> <span class="tag tag-red">AudioSampleTextReview.vue</span> <span class="tag tag-red">Benchmark/Model.vue</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 8: TECH STACK -->
+<!-- ============================================================ -->
+<section id="tech-stack">
+  <h2><span class="sec-num">8</span> Unified Technology Stack</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <h4>Backend &mdash; Laravel Application</h4>
+      <div class="stack-row"><span class="stack-label">Framework</span><span class="stack-value">Laravel 12 (PHP 8.4)</span></div>
+      <div class="stack-row"><span class="stack-label">Auth</span><span class="stack-value">Fortify v1 (2FA, email verify)</span></div>
+      <div class="stack-row"><span class="stack-label">ORM</span><span class="stack-value">Eloquent with Spatie Media Library</span></div>
+      <div class="stack-row"><span class="stack-label">Queue</span><span class="stack-value">Laravel Queue (Redis driver) for alignment, cleaning, ASR jobs</span></div>
+      <div class="stack-row"><span class="stack-label">WebSocket</span><span class="stack-value">Laravel Reverb v1 for real-time updates</span></div>
+      <div class="stack-row"><span class="stack-label">Permissions</span><span class="stack-value">Spatie Laravel Permission v6</span></div>
+      <div class="stack-row"><span class="stack-label">Google APIs</span><span class="stack-value">google/apiclient (Drive + Sheets)</span></div>
+      <div class="stack-row"><span class="stack-label">Document</span><span class="stack-value">PHPWord v1.4 + PHPSpreadsheet v5.4</span></div>
+      <div class="stack-row"><span class="stack-label">Storage</span><span class="stack-value">Flysystem S3 via Spatie Media Library</span></div>
+      <div class="stack-row"><span class="stack-label">Testing</span><span class="stack-value">Pest v4 + Larastan v3</span></div>
+    </div>
+    <div class="card">
+      <h4>Frontend &mdash; Vue SPA</h4>
+      <div class="stack-row"><span class="stack-label">Framework</span><span class="stack-value">Vue 3.5 + TypeScript</span></div>
+      <div class="stack-row"><span class="stack-label">SPA Bridge</span><span class="stack-value">Inertia.js v2 (deferred props, prefetch, polling)</span></div>
+      <div class="stack-row"><span class="stack-label">Styling</span><span class="stack-value">Tailwind CSS 4 + tw-animate-css</span></div>
+      <div class="stack-row"><span class="stack-label">UI Components</span><span class="stack-value">Reka UI + Headless UI + Lucide icons</span></div>
+      <div class="stack-row"><span class="stack-label">Routing</span><span class="stack-value">Ziggy v2 (Laravel named routes in JS)</span></div>
+      <div class="stack-row"><span class="stack-label">Build</span><span class="stack-value">Vite 7 with @vitejs/plugin-vue 6</span></div>
+      <div class="stack-row"><span class="stack-label">Diff Library</span><span class="stack-value">diff v8 (npm)</span></div>
+      <div class="stack-row"><span class="stack-label">Tooltips</span><span class="stack-value">vue-tippy v6</span></div>
+      <div class="stack-row"><span class="stack-label">RTL Support</span><span class="stack-value">Tailwind RTL utilities + Hebrew fonts</span></div>
+      <div class="stack-row"><span class="stack-label">Linting</span><span class="stack-value">ESLint 9 + Prettier 3</span></div>
+    </div>
+    <div class="card">
+      <h4>Python Alignment Service</h4>
+      <div class="stack-row"><span class="stack-label">Runtime</span><span class="stack-value">Python 3.11+ with Flask 3.0</span></div>
+      <div class="stack-row"><span class="stack-label">ML Core</span><span class="stack-value">stable-ts 2.16+ / faster-whisper 1.0+</span></div>
+      <div class="stack-row"><span class="stack-label">GPU</span><span class="stack-value">PyTorch 2.0+ (CUDA optional)</span></div>
+      <div class="stack-row"><span class="stack-label">Model</span><span class="stack-value">ivrit-ai/yi-whisper-large-v3-turbo-ct2</span></div>
+      <div class="stack-row"><span class="stack-label">GPU Offload</span><span class="stack-value">RunPod Serverless</span></div>
+      <div class="stack-row"><span class="stack-label">Deployment</span><span class="stack-value">Docker container (sidecar to Laravel)</span></div>
+      <div class="stack-row"><span class="stack-label">API</span><span class="stack-value">/api/alignment/align, /transcribe, /health</span></div>
+    </div>
+    <div class="card">
+      <h4>Infrastructure</h4>
+      <div class="stack-row"><span class="stack-label">Database</span><span class="stack-value">MySQL 8 or PostgreSQL 16</span></div>
+      <div class="stack-row"><span class="stack-label">Cache / Queue</span><span class="stack-value">Redis</span></div>
+      <div class="stack-row"><span class="stack-label">File Storage</span><span class="stack-value">S3-compatible (AWS/R2) via Spatie</span></div>
+      <div class="stack-row"><span class="stack-label">Container</span><span class="stack-value">Docker Compose (PHP + Python + Redis + DB)</span></div>
+      <div class="stack-row"><span class="stack-label">CI/CD</span><span class="stack-value">GitHub Actions (Pest tests + Pint lint)</span></div>
+      <div class="stack-row"><span class="stack-label">SSL/CDN</span><span class="stack-value">Cloudflare (existing for mapping domain)</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 9: IMPLEMENTATION PHASES -->
+<!-- ============================================================ -->
+<section id="phases">
+  <h2><span class="sec-num">9</span> Implementation Phases</h2>
+
+  <div class="grid-2">
+    <div class="phase-card p1" data-phase="Phase 1 &mdash; 2-3 weeks">
+      <h3 style="color:var(--green);">Phase 1: Python Alignment Sidecar</h3>
+      <p style="font-size:0.82rem;color:var(--text-dim);">Integrate the alignment service as a Docker sidecar called by Laravel.</p>
+      <ul style="font-size:0.82rem;color:var(--text-dim);list-style:disc;padding-left:1.5rem;margin-top:0.5rem;">
+        <li>Copy <code>alignment/</code>, <code>blueprints/</code>, <code>runpod/</code>, <code>runpod_client.py</code>, <code>app.py</code> into <code>services/python-alignment/</code></li>
+        <li>Create <code>services/python-alignment/Dockerfile</code> with CUDA support</li>
+        <li>Add <code>docker-compose.yml</code> service for python-alignment</li>
+        <li>Implement <code>StableTsDriver</code> in <code>app/Services/Alignment/Drivers/</code></li>
+        <li>Register new provider in <code>config/alignment.php</code></li>
+        <li>Update <code>AlignTranscriptionJob</code> to support stable-ts provider</li>
+        <li>Add integration tests for alignment API communication</li>
+      </ul>
+      <div style="margin-top:0.75rem;">
+        <span class="tag tag-green">Low Risk</span>
+        <span class="tag tag-green">No DB Changes</span>
+        <span class="tag tag-green">Backward Compatible</span>
+      </div>
+    </div>
+
+    <div class="phase-card p2" data-phase="Phase 2 &mdash; 3-4 weeks">
+      <h3 style="color:var(--accent);">Phase 2: Mapping Database + Backend</h3>
+      <p style="font-size:0.82rem;color:var(--text-dim);">Create mapping data model and import existing data. Build matching engine in PHP.</p>
+      <ul style="font-size:0.82rem;color:var(--text-dim);list-style:disc;padding-left:1.5rem;margin-top:0.5rem;">
+        <li>Create migration for <code>audio_transcript_mappings</code> and <code>mapping_suggestions</code> tables</li>
+        <li>Create Eloquent models: <code>AudioTranscriptMapping</code>, <code>MappingSuggestion</code></li>
+        <li>Port matching algorithm to <code>app/Services/Mapping/MatchingService.php</code></li>
+        <li>Port Hebrew date parser to <code>app/Services/Mapping/HebrewDateParser.php</code></li>
+        <li>Build <code>php artisan mapping:import</code> command to load data.json</li>
+        <li>Create <code>MappingController</code> with index, match, export, suggestions endpoints</li>
+        <li>Write Pest tests for matching algorithm accuracy</li>
+      </ul>
+      <div style="margin-top:0.75rem;">
+        <span class="tag tag-blue">New Migration</span>
+        <span class="tag tag-blue">New Models</span>
+        <span class="tag tag-blue">New Service</span>
+      </div>
+    </div>
+
+    <div class="phase-card p3" data-phase="Phase 3 &mdash; 3-4 weeks">
+      <h3 style="color:var(--accent2);">Phase 3: Mapping Frontend + Karaoke UI</h3>
+      <p style="font-size:0.82rem;color:var(--text-dim);">Build the Vue/Inertia mapping interface and karaoke playback mode.</p>
+      <ul style="font-size:0.82rem;color:var(--text-dim);list-style:disc;padding-left:1.5rem;margin-top:0.5rem;">
+        <li>Create <code>pages/Mapping/Index.vue</code> &mdash; stats + tabs + server-side pagination</li>
+        <li>Create <code>pages/Mapping/Selection.vue</code> &mdash; 50-hour selection view</li>
+        <li>Create <code>pages/Mapping/UnmatchedAudio.vue</code> + <code>UnmatchedTranscripts.vue</code></li>
+        <li>Create <code>components/mapping/SearchModal.vue</code> using Dialog + deferred search</li>
+        <li>Create <code>components/mapping/ConfidenceBadge.vue</code> + suggestion cards</li>
+        <li>Create <code>components/KaraokePlayer.vue</code> &mdash; synced word highlighting</li>
+        <li>Create <code>components/DiffViewer.vue</code> &mdash; side-by-side or inline diff</li>
+        <li>Integrate Karaoke + Diff into existing <code>Transcriptions/Show.vue</code></li>
+        <li>Add sidebar navigation links for Mapping section</li>
+      </ul>
+      <div style="margin-top:0.75rem;">
+        <span class="tag tag-purple">Vue Pages</span>
+        <span class="tag tag-purple">Vue Components</span>
+        <span class="tag tag-purple">Inertia Deferred Props</span>
+      </div>
+    </div>
+
+    <div class="phase-card p4" data-phase="Phase 4 &mdash; 2-3 weeks">
+      <h3 style="color:var(--orange);">Phase 4: Pipeline Polish + Retirement</h3>
+      <p style="font-size:0.82rem;color:var(--text-dim);">Complete the pipeline connections, add singing/silence detection, and retire the old repos.</p>
+      <ul style="font-size:0.82rem;color:var(--text-dim);list-style:disc;padding-left:1.5rem;margin-top:0.5rem;">
+        <li>Add "promote to AudioSample" action from mapping interface (creates record + imports from Drive)</li>
+        <li>Add singing/silence detection during alignment (tag segments as non-speech)</li>
+        <li>Build automated mapping-to-training pipeline (matched + cleaned + approved = auto-add)</li>
+        <li>Add Reverb real-time notifications for alignment completion, mapping matches</li>
+        <li>Add benchmark/training enforcement (prevent benchmark samples in training)</li>
+        <li>Comprehensive E2E testing of all pipelines</li>
+        <li>Redirect mapping.kohnai.ai to unified app's /mapping route</li>
+        <li>Archive yiddish-mapping and yiddish-audio-alignment repos (mark as deprecated)</li>
+      </ul>
+      <div style="margin-top:0.75rem;">
+        <span class="tag tag-orange">Pipeline Wiring</span>
+        <span class="tag tag-orange">Repo Retirement</span>
+        <span class="tag tag-orange">Real-time</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1.5rem;border-color:var(--accent2);">
+    <h4 style="color:var(--accent2);margin-bottom:0.75rem;">Total Estimated Timeline: 10-14 weeks</h4>
+    <table class="data-table">
+      <thead><tr><th>Phase</th><th>Duration</th><th>Dependencies</th><th>Risk</th></tr></thead>
+      <tbody>
+        <tr><td>Phase 1: Python Sidecar</td><td>2-3 weeks</td><td>None &mdash; can start immediately</td><td><span class="tag tag-green">Low</span></td></tr>
+        <tr><td>Phase 2: Mapping Backend</td><td>3-4 weeks</td><td>None &mdash; can run parallel with Phase 1</td><td><span class="tag tag-yellow">Medium</span> (data import correctness)</td></tr>
+        <tr><td>Phase 3: Mapping + Karaoke UI</td><td>3-4 weeks</td><td>Phase 2 backend must be complete</td><td><span class="tag tag-yellow">Medium</span> (UX complexity)</td></tr>
+        <tr><td>Phase 4: Pipeline Polish</td><td>2-3 weeks</td><td>Phases 1-3 complete</td><td><span class="tag tag-green">Low</span></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:0.82rem;color:var(--text-dim);margin-top:0.75rem;"><strong>Note:</strong> Phases 1 and 2 can run in parallel since they touch different parts of the codebase. The critical path is Phase 2 &rarr; Phase 3 (backend before frontend).</p>
+  </div>
+</section>
+
+</main>
+
+<footer style="text-align:center;padding:2rem;border-top:1px solid var(--border);color:var(--text-muted);font-size:0.8rem;">
+  JEM ASR Integration Architecture Document &mdash; Generated 2026-02-27 &mdash; Reference guide for consolidating yiddish-mapping + yiddish-audio-alignment into yiddish-cleaner
+</footer>
+
+<script>
+// Scroll progress bar
+window.addEventListener('scroll', () => {
+  const scrollTop = document.documentElement.scrollTop;
+  const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  const progress = (scrollTop / scrollHeight) * 100;
+  document.getElementById('scrollProgress').style.width = progress + '%';
+});
+
+// Active nav link tracking
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('nav a.nav-link');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(section => {
+    const sectionTop = section.offsetTop - 80;
+    if (scrollY >= sectionTop) {
+      current = section.getAttribute('id');
+    }
+  });
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href') === '#' + current) {
+      link.classList.add('active');
+    }
+  });
+});
+
+// Smooth scroll for nav links
+navLinks.forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(link.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+</script>
+
+</body>
+</html>

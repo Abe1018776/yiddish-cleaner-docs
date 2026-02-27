@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Technical Merge Plan: Unified Yiddish Platform</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --surface3: #475569;
+    --border: #475569;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,0.08);
+    --orange: #fb923c;
+    --orange-bg: rgba(251,146,60,0.08);
+    --pink: #f472b6;
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.08);
+    --yellow: #fbbf24;
+    --yellow-bg: rgba(251,191,36,0.08);
+    --teal: #2dd4bf;
+    --purple: #a78bfa;
+    --purple-bg: rgba(167,139,250,0.08);
+    --mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(15,23,42,0.92); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+  }
+  nav .inner {
+    max-width: 1300px; margin: 0 auto;
+    display: flex; align-items: center; gap: 1.5rem; height: 52px;
+    overflow-x: auto; white-space: nowrap;
+  }
+  nav .logo {
+    font-weight: 800; font-size: 1rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    flex-shrink: 0;
+  }
+  nav a {
+    color: var(--text-dim); text-decoration: none; font-size: 0.8rem;
+    padding: 0.3rem 0.6rem; border-radius: 5px; transition: all 0.2s;
+  }
+  nav a:hover { color: var(--text); background: var(--surface); }
+
+  /* HERO */
+  .hero {
+    margin-top: 52px; padding: 3.5rem 2rem 2.5rem; text-align: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #172554 70%, #0f172a 100%);
+    border-bottom: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(56,189,248,0.05) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(129,140,248,0.05) 0%, transparent 50%);
+  }
+  .hero > * { position: relative; z-index: 1; }
+  .hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.4rem; }
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero p { color: var(--text-dim); font-size: 1rem; max-width: 700px; margin: 0 auto; }
+  .hero .badges { display: flex; gap: 0.5rem; justify-content: center; margin-top: 1.2rem; flex-wrap: wrap; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    border: 1px solid var(--border); background: var(--surface);
+  }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+  /* MAIN */
+  main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+  /* SECTIONS */
+  section { margin-bottom: 3rem; }
+  section h2 {
+    font-size: 1.5rem; font-weight: 700; margin-bottom: 0.3rem;
+    padding-top: 1rem; display: flex; align-items: center; gap: 0.5rem;
+  }
+  section h2 .tag {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 8px; font-size: 0.8rem;
+    background: var(--accent); color: var(--bg); font-weight: 800;
+  }
+  .section-desc { color: var(--text-dim); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+  /* COLLAPSIBLE */
+  details {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 0.75rem; overflow: hidden;
+  }
+  details[open] { border-color: var(--accent); }
+  summary {
+    padding: 0.85rem 1.2rem; cursor: pointer; font-weight: 600;
+    font-size: 0.95rem; display: flex; align-items: center; gap: 0.6rem;
+    user-select: none; list-style: none;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before {
+    content: '\25B6'; font-size: 0.65rem; color: var(--text-dim);
+    transition: transform 0.2s; flex-shrink: 0;
+  }
+  details[open] summary::before { transform: rotate(90deg); }
+  summary:hover { background: var(--surface2); }
+  .detail-body { padding: 0 1.2rem 1.2rem; }
+
+  /* CODE BLOCKS */
+  pre {
+    background: #0d1117; border: 1px solid var(--border);
+    border-radius: 8px; padding: 1rem 1.2rem; overflow-x: auto;
+    font-family: var(--mono); font-size: 0.8rem; line-height: 1.6;
+    color: #c9d1d9; margin: 0.75rem 0;
+  }
+  code {
+    font-family: var(--mono); font-size: 0.82rem;
+    background: var(--surface2); padding: 0.1rem 0.4rem; border-radius: 3px;
+  }
+  pre code { background: none; padding: 0; }
+  .code-label {
+    display: inline-block; font-size: 0.7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--accent); margin-bottom: 0.3rem;
+  }
+
+  /* CARDS */
+  .card-grid { display: grid; gap: 0.75rem; }
+  .card-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+  .card-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.2rem; transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.3rem; }
+  .card p, .card li { color: var(--text-dim); font-size: 0.85rem; }
+  .card ul { padding-left: 1.2rem; }
+  .card .icon { font-size: 1.3rem; margin-bottom: 0.5rem; }
+
+  /* TABLE */
+  .data-table {
+    width: 100%; border-collapse: collapse; font-size: 0.82rem;
+    background: var(--surface); border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--border); margin: 0.75rem 0;
+  }
+  .data-table th {
+    background: var(--surface2); padding: 0.6rem 0.8rem;
+    text-align: left; font-weight: 700; font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 0.5rem 0.8rem; border-bottom: 1px solid rgba(71,85,105,0.3);
+    vertical-align: top;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table td code { font-size: 0.78rem; }
+
+  /* CHECKLIST */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(71,85,105,0.3);
+    display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.88rem;
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist .box {
+    width: 16px; height: 16px; border: 2px solid var(--border);
+    border-radius: 3px; flex-shrink: 0; margin-top: 3px;
+  }
+  .checklist .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 6px; font-size: 0.7rem;
+    font-weight: 700; flex-shrink: 0;
+    background: var(--surface2); color: var(--text-dim);
+  }
+
+  /* COMPLEXITY TAGS */
+  .cx { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+  .cx-low { background: var(--green-bg); color: var(--green); }
+  .cx-med { background: var(--yellow-bg); color: var(--yellow); }
+  .cx-high { background: var(--orange-bg); color: var(--orange); }
+  .cx-crit { background: var(--red-bg); color: var(--red); }
+
+  /* FILE TREE */
+  .file-tree {
+    background: #0d1117; border: 1px solid var(--border);
+    border-radius: 8px; padding: 1rem 1.2rem; font-family: var(--mono);
+    font-size: 0.78rem; line-height: 1.9; overflow-x: auto; white-space: pre;
+    color: var(--text-dim); margin: 0.75rem 0;
+  }
+  .file-tree .dir { color: var(--accent); font-weight: 700; }
+  .file-tree .new { color: var(--green); font-weight: 600; }
+  .file-tree .mod { color: var(--yellow); font-weight: 600; }
+  .file-tree .desc { opacity: 0.5; font-style: italic; }
+
+  /* DIAGRAM */
+  .diagram {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem; overflow-x: auto; margin: 0.75rem 0;
+  }
+  .flow-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 0.4rem; flex-wrap: wrap; margin: 0.5rem 0;
+  }
+  .flow-node {
+    padding: 0.5rem 0.9rem; border-radius: 8px; font-size: 0.8rem;
+    font-weight: 600; text-align: center; white-space: nowrap;
+    border: 2px solid; min-width: 100px;
+  }
+  .flow-node.blue { background: rgba(56,189,248,0.1); border-color: var(--accent); color: var(--accent); }
+  .flow-node.purple { background: rgba(129,140,248,0.1); border-color: var(--accent2); color: var(--accent2); }
+  .flow-node.green { background: rgba(74,222,128,0.1); border-color: var(--green); color: var(--green); }
+  .flow-node.orange { background: rgba(251,146,60,0.1); border-color: var(--orange); color: var(--orange); }
+  .flow-node.pink { background: rgba(244,114,182,0.1); border-color: var(--pink); color: var(--pink); }
+  .flow-node.teal { background: rgba(45,212,191,0.1); border-color: var(--teal); color: var(--teal); }
+  .flow-node small { display: block; font-weight: 400; font-size: 0.7rem; opacity: 0.8; }
+  .flow-arrow { color: var(--text-dim); font-size: 1rem; flex-shrink: 0; }
+
+  /* STATUS LABELS */
+  .status {
+    display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px;
+    font-size: 0.7rem; font-weight: 700;
+  }
+  .status-done { background: var(--green-bg); color: var(--green); }
+  .status-wip { background: var(--yellow-bg); color: var(--yellow); }
+  .status-todo { background: var(--purple-bg); color: var(--purple); }
+
+  /* SPECIAL HIGHLIGHT BOXES */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(56,189,248,0.06);
+    padding: 0.8rem 1rem; border-radius: 0 8px 8px 0;
+    margin: 0.75rem 0; font-size: 0.88rem;
+  }
+  .callout.warn {
+    border-left-color: var(--orange);
+    background: rgba(251,146,60,0.06);
+  }
+  .callout.danger {
+    border-left-color: var(--red);
+    background: rgba(248,113,113,0.06);
+  }
+  .callout strong { color: var(--text); }
+
+  /* PRINT */
+  @media print {
+    body { background: #fff; color: #1a1a1a; font-size: 11pt; }
+    nav, .hero { display: none; }
+    main { max-width: 100%; padding: 1rem; }
+    details { break-inside: avoid; }
+    details[open] { border-color: #888; }
+    summary { background: #f0f0f0; }
+    pre { background: #f5f5f5; border-color: #ddd; color: #333; }
+    code { background: #eee; }
+    .card, .diagram, .file-tree { background: #fafafa; border-color: #ddd; }
+    .data-table th { background: #eee; }
+    .flow-node { border-width: 1px; }
+  }
+
+  @media (max-width: 768px) {
+    .card-grid.cols-2, .card-grid.cols-3 { grid-template-columns: 1fr; }
+    nav .inner { gap: 0.8rem; }
+    .hero h1 { font-size: 1.6rem; }
+    main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <span class="logo">Merge Plan</span>
+    <a href="#overview">Overview</a>
+    <a href="#repo-analysis">Repo Analysis</a>
+    <a href="#branch-strategy">Branch Strategy</a>
+    <a href="#mapping-integration">Mapping</a>
+    <a href="#alignment-integration">Alignment</a>
+    <a href="#database">Database</a>
+    <a href="#api-design">API</a>
+    <a href="#implementation">Implementation</a>
+    <a href="#pr-description">PR Draft</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Technical Merge Plan: <span>Unified Yiddish Platform</span></h1>
+  <p>Merging yiddish-mapping and yiddish-audio-alignment into yiddish-cleaner (Laravel 12 + Inertia v2 + Vue 3)</p>
+  <div class="badges">
+    <span class="badge"><span class="dot" style="background:var(--accent)"></span> Laravel 12</span>
+    <span class="badge"><span class="dot" style="background:var(--green)"></span> Vue 3 + Inertia v2</span>
+    <span class="badge"><span class="dot" style="background:var(--orange)"></span> Python Alignment</span>
+    <span class="badge"><span class="dot" style="background:var(--pink)"></span> Tailwind v4</span>
+    <span class="badge"><span class="dot" style="background:var(--yellow)"></span> PR to Shloimy15e/yiddish-cleaner</span>
+  </div>
+</div>
+
+<main>
+
+<!-- ====================================================================== -->
+<!-- SECTION A: OVERVIEW -->
+<!-- ====================================================================== -->
+<section id="overview">
+  <h2><span class="tag">0</span> Executive Overview</h2>
+  <p class="section-desc">Three repositories consolidated into one unified Laravel application.</p>
+
+  <div class="diagram">
+    <div class="flow-row">
+      <div class="flow-node blue">yiddish-cleaner<small>Laravel 12 / Vue 3 / Inertia v2</small></div>
+      <span class="flow-arrow">+</span>
+      <div class="flow-node orange">yiddish-mapping<small>Vanilla JS, static JSON</small></div>
+      <span class="flow-arrow">+</span>
+      <div class="flow-node purple">yiddish-audio-alignment<small>Python Flask + stable-ts</small></div>
+      <span class="flow-arrow">&rarr;</span>
+      <div class="flow-node green">Unified Platform<small>feature/unified-platform branch</small></div>
+    </div>
+  </div>
+
+  <div class="card-grid cols-3">
+    <div class="card">
+      <div class="icon">1.</div>
+      <h3>yiddish-cleaner (DESTINATION)</h3>
+      <p>Laravel 12 app with Inertia v2/Vue 3 frontend. Has audio samples, transcriptions, cleaning pipeline, ASR, alignment, benchmarking. Deployed via Herd.</p>
+      <p style="margin-top:0.4rem"><strong>Stack:</strong> PHP 8.4, Laravel 12, Vue 3, Tailwind v4, SQLite, Spatie Media Library, Fortify auth, Reverb WebSockets</p>
+    </div>
+    <div class="card">
+      <div class="icon">2.</div>
+      <h3>yiddish-mapping (SOURCE)</h3>
+      <p>Single-page vanilla JS app for mapping audio files to transcript files. Uses a static <code>data.json</code> with 4669 audio and 1065 transcript records from Google Drive. Deployed to Cloudflare Pages.</p>
+      <p style="margin-top:0.4rem"><strong>Stack:</strong> Vanilla HTML/CSS/JS, static data.json, localStorage for user mappings</p>
+    </div>
+    <div class="card">
+      <div class="icon">3.</div>
+      <h3>yiddish-audio-alignment (SOURCE)</h3>
+      <p>Python Flask app for cleaning Yiddish transcripts and word-level audio alignment using stable-ts with yi-whisper. Has RunPod serverless GPU support. Branch: <code>feature/stable-ts-alignment</code>.</p>
+      <p style="margin-top:0.4rem"><strong>Stack:</strong> Python 3.11, Flask, stable-ts, faster-whisper, RunPod API, Google APIs</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================================== -->
+<!-- SECTION A: REPOSITORY ANALYSIS -->
+<!-- ====================================================================== -->
+<section id="repo-analysis">
+  <h2><span class="tag">A</span> Repository Analysis</h2>
+  <p class="section-desc">Detailed structure, dependencies, and configuration of each repository.</p>
+
+  <!-- yiddish-cleaner analysis -->
+  <details open>
+    <summary>yiddish-cleaner -- File Structure &amp; Architecture</summary>
+    <div class="detail-body">
+      <div class="file-tree"><span class="dir">yiddish-cleaner/</span>
+  <span class="dir">app/</span>
+    <span class="dir">Http/Controllers/</span>
+      Api/AsrController.php        <span class="desc"># ASR provider info API</span>
+      Api/LlmController.php        <span class="desc"># LLM provider info API</span>
+      AudioSampleController.php    <span class="desc"># CRUD + transcribe + benchmark</span>
+      BenchmarkController.php      <span class="desc"># Public benchmark pages</span>
+      DashboardController.php      <span class="desc"># Dashboard stats</span>
+      ImportController.php         <span class="desc"># Spreadsheet import</span>
+      ProcessingRunController.php  <span class="desc"># Batch processing runs</span>
+      TranscriptionController.php  <span class="desc"># Base/ASR transcriptions + alignment</span>
+    <span class="dir">Jobs/</span>
+      AlignTranscriptionJob.php    <span class="desc"># Queue-driven alignment</span>
+      CleanTranscriptionJob.php    <span class="desc"># Queue-driven cleaning</span>
+      TranscribeAudioSampleJob.php <span class="desc"># Queue-driven ASR</span>
+    <span class="dir">Models/</span>
+      AudioSample.php              <span class="desc"># Audio file entity (has media)</span>
+      AudioSampleTranscription.php <span class="desc"># M2M pivot</span>
+      Transcription.php            <span class="desc"># Base/ASR transcriptions + alignment state</span>
+      TranscriptionWord.php        <span class="desc"># Word-level timestamps</span>
+      TranscriptionSegment.php     <span class="desc"># Segment-level timestamps</span>
+      ProcessingRun.php            <span class="desc"># Batch processing tracking</span>
+    <span class="dir">Services/</span>
+      <span class="dir">Alignment/</span>            <span class="desc"># Forced alignment service layer</span>
+        AlignmentManager.php       <span class="desc"># Provider manager</span>
+        Drivers/WhisperXDriver.php <span class="desc"># API-based WhisperX alignment</span>
+        Drivers/LocalWhisperXDriver.php <span class="desc"># subprocess-based alignment</span>
+      <span class="dir">Asr/</span>                  <span class="desc"># ASR service layer</span>
+      <span class="dir">Cleaning/</span>             <span class="desc"># Text cleaning pipeline</span>
+      <span class="dir">Llm/</span>                  <span class="desc"># LLM-assisted cleaning</span>
+  <span class="dir">config/</span>
+    alignment.php                  <span class="desc"># Alignment provider config</span>
+    asr.php                        <span class="desc"># ASR provider config</span>
+    cleaning.php                   <span class="desc"># Cleaning presets + processors</span>
+  <span class="dir">database/migrations/</span>       <span class="desc"># 33 migrations total</span>
+  <span class="dir">resources/js/</span>
+    <span class="dir">pages/</span>                   <span class="desc"># Inertia Vue pages</span>
+      AudioSamples/{Index,Show,Create}.vue
+      Transcriptions/{Index,Show,Create}.vue
+      Benchmark/{Index,Compare,GoldStandard,Model}.vue
+    <span class="dir">components/</span>              <span class="desc"># Reusable Vue components</span>
+    <span class="dir">components/ui/</span>           <span class="desc"># shadcn-vue design system</span>
+  <span class="dir">routes/</span>
+    web.php                        <span class="desc"># All web routes (Inertia)</span>
+  <span class="dir">scripts/</span>
+    align.py                       <span class="desc"># WhisperX alignment script</span>
+    whisper_transcribe.py          <span class="desc"># Local whisper transcription</span></div>
+
+      <h4 style="margin-top:1rem">Key Dependencies (composer.json)</h4>
+      <table class="data-table">
+        <tr><th>Package</th><th>Version</th><th>Purpose</th></tr>
+        <tr><td><code>laravel/framework</code></td><td>^12.0</td><td>Core framework</td></tr>
+        <tr><td><code>inertiajs/inertia-laravel</code></td><td>^2.0</td><td>Server-side Inertia</td></tr>
+        <tr><td><code>laravel/fortify</code></td><td>^1.30</td><td>Authentication</td></tr>
+        <tr><td><code>laravel/reverb</code></td><td>^1.7</td><td>WebSocket broadcasting</td></tr>
+        <tr><td><code>spatie/laravel-medialibrary</code></td><td>^11.17</td><td>File attachments (audio, transcripts)</td></tr>
+        <tr><td><code>google/apiclient</code></td><td>^2.19</td><td>Google Drive/Sheets API</td></tr>
+        <tr><td><code>phpoffice/phpword</code></td><td>^1.4</td><td>DOCX parsing</td></tr>
+        <tr><td><code>league/flysystem-aws-s3-v3</code></td><td>^3.30</td><td>S3-compatible storage</td></tr>
+      </table>
+
+      <h4 style="margin-top:1rem">Key Dependencies (package.json)</h4>
+      <table class="data-table">
+        <tr><th>Package</th><th>Version</th><th>Purpose</th></tr>
+        <tr><td><code>vue</code></td><td>^3.5.13</td><td>Frontend framework</td></tr>
+        <tr><td><code>@inertiajs/vue3</code></td><td>^2.3.7</td><td>Client-side Inertia</td></tr>
+        <tr><td><code>tailwindcss</code></td><td>^4.1.1</td><td>CSS framework</td></tr>
+        <tr><td><code>reka-ui</code></td><td>^2.7.0</td><td>Headless UI primitives (shadcn-vue base)</td></tr>
+        <tr><td><code>diff</code></td><td>^8.0.3</td><td>Text diff rendering</td></tr>
+        <tr><td><code>ziggy-js</code></td><td>^2.6.0</td><td>Laravel named routes in JS</td></tr>
+      </table>
+
+      <h4 style="margin-top:1rem">Environment Variables (.env.example)</h4>
+      <table class="data-table">
+        <tr><th>Variable</th><th>Purpose</th></tr>
+        <tr><td><code>DB_CONNECTION=sqlite</code></td><td>Database (default SQLite)</td></tr>
+        <tr><td><code>QUEUE_CONNECTION=database</code></td><td>Job queue driver</td></tr>
+        <tr><td><code>FILESYSTEM_DISK=local</code></td><td>File storage</td></tr>
+        <tr><td><code>AWS_*</code></td><td>S3 storage credentials</td></tr>
+        <tr><td><code>BROADCAST_CONNECTION=log</code></td><td>Event broadcasting</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>yiddish-mapping -- File Structure &amp; Architecture</summary>
+    <div class="detail-body">
+      <div class="file-tree"><span class="dir">yiddish-mapping/</span>
+  <span class="dir">public/</span>
+    index.html    <span class="desc"># Full app: HTML + CSS + JS (620 lines)</span>
+    data.json     <span class="desc"># 4669 audio + 1065 transcript records (~75KB)</span>
+  architecture.html <span class="desc"># Architecture documentation</span>
+  update_firstline.py <span class="desc"># Script to extract first lines from transcripts</span></div>
+
+      <p style="margin-top:0.5rem">This is a <strong>single-file application</strong> with no build step. All logic is inline JavaScript inside <code>public/index.html</code>. Key features:</p>
+      <ul style="margin:0.5rem 0 0 1.2rem; color: var(--text-dim); font-size: 0.88rem;">
+        <li><strong>4 tabs</strong>: 50-Hour Selection, All Matched, Unmatched Audio, Unmatched Transcripts</li>
+        <li><strong>Suggested matches</strong> with confidence scores per unmatched item</li>
+        <li><strong>Manual mapping</strong> saved to <code>localStorage</code></li>
+        <li><strong>CSV export</strong> of manual mappings</li>
+        <li><strong>Filters</strong>: year (Hebrew calendar), month, type (sicha/maamar/farbrengen), text search</li>
+        <li><strong>Pagination</strong>: 50 items per page</li>
+        <li><strong>Modal</strong> for bidirectional search (audio-to-transcript and transcript-to-audio)</li>
+      </ul>
+
+      <h4 style="margin-top:1rem">data.json Structure</h4>
+<pre><code>{
+  "generated": "2026-02-24T18:48:01.641Z",
+  "stats": {
+    "totalAudio": 4669, "totalTranscripts": 1065,
+    "matched": 1809, "unmatchedAudio": 2860,
+    "unmatchedTranscripts": 447, "selected50hr": 423
+  },
+  "allTranscripts": [{ "name", "link", "year", "month", "day", "firstLine" }],
+  "allAudio": [{ "name", "link", "year", "month", "day", "estMinutes", "type" }],
+  "selected": [{ audioName, audioLink, transcriptName, transcriptLink, ... }],
+  "matched": [/* same shape */],
+  "unmatchedAudio": [{ audioName, audioLink, year, month, day, type, estMinutes,
+                       suggestedMatches: [{ transcriptName, transcriptLink, score, matchReason }] }],
+  "unmatchedTranscripts": [{ transcriptName, transcriptLink, year, month, day, firstLine,
+                             suggestedMatches: [{ audioName, audioLink, score, matchReason }] }]
+}</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>yiddish-audio-alignment -- File Structure &amp; Architecture</summary>
+    <div class="detail-body">
+      <div class="file-tree"><span class="dir">yiddish-audio-alignment/ (branch: feature/stable-ts-alignment)</span>
+  app.py                    <span class="desc"># Flask main app (14 routes for cleaning)</span>
+  <span class="dir">blueprints/</span>
+    alignment_bp.py         <span class="desc"># /api/alignment/* routes (align, transcribe, health)</span>
+  <span class="dir">alignment/</span>
+    align.py                <span class="desc"># Confusion-aware alignment algorithm</span>
+    breakable_aligner.py    <span class="desc"># Breakable alignment for stable-ts</span>
+    seekable_audio_loader.py <span class="desc"># Seekable audio stream for chunked alignment</span>
+    utils.py                <span class="desc"># Confusion zone detection, segment helpers</span>
+  cleaner.py                <span class="desc"># TranscriptCleaner (matches yiddish-cleaner logic)</span>
+  <span class="dir">processors/</span>             <span class="desc"># Cleaning processors (same as Laravel version)</span>
+  clean_rate.py             <span class="desc"># Clean rate calculator</span>
+  diff_utils.py             <span class="desc"># Diff generation</span>
+  document_model.py         <span class="desc"># Document representation</span>
+  document_processor.py     <span class="desc"># DOCX/DOC processing</span>
+  drive_downloader.py       <span class="desc"># Google Drive file download</span>
+  sheet_processor.py        <span class="desc"># Google Sheets batch processing</span>
+  llm_processor.py          <span class="desc"># LLM-assisted cleaning</span>
+  mapping_config.py         <span class="desc"># Audio-text mapping configuration</span>
+  runpod_client.py          <span class="desc"># RunPod serverless client</span>
+  converter.py              <span class="desc"># DOC-to-DOCX conversion (LibreOffice)</span>
+  <span class="dir">runpod/</span>
+    Dockerfile              <span class="desc"># RunPod GPU handler container</span>
+    handler.py              <span class="desc"># RunPod serverless handler</span>
+  <span class="dir">site/</span>
+    functions/api/align.js  <span class="desc"># Cloudflare proxy to RunPod</span>
+    public/index.html       <span class="desc"># Alignment demo frontend</span>
+  <span class="dir">templates/</span>
+    index.html              <span class="desc"># Flask frontend (cleaning UI)</span>
+  Dockerfile                <span class="desc"># Docker for the Flask app</span>
+  requirements.txt          <span class="desc"># Flask + Google APIs + LLM SDKs</span>
+  requirements-alignment.txt <span class="desc"># stable-ts + faster-whisper + torch</span></div>
+
+      <h4 style="margin-top:1rem">Python Dependencies</h4>
+      <table class="data-table">
+        <tr><th>Category</th><th>Packages</th><th>Purpose</th></tr>
+        <tr><td>Core</td><td><code>Flask 3.0, gunicorn 22.0, python-dotenv</code></td><td>Web framework</td></tr>
+        <tr><td>Documents</td><td><code>python-docx, lxml</code></td><td>DOCX parsing</td></tr>
+        <tr><td>Google</td><td><code>google-api-python-client, google-auth-*</code></td><td>Drive/Sheets API</td></tr>
+        <tr><td>LLM</td><td><code>openai, anthropic, google-generativeai</code></td><td>LLM cleaning</td></tr>
+        <tr><td>Alignment</td><td><code>stable-ts &ge;2.16, faster-whisper &ge;1.0, torch &ge;2.0</code></td><td>Audio alignment</td></tr>
+      </table>
+
+      <h4 style="margin-top:1rem">API Endpoints (Flask)</h4>
+      <table class="data-table">
+        <tr><th>Route</th><th>Method</th><th>Purpose</th></tr>
+        <tr><td><code>/api/alignment/align</code></td><td>POST</td><td>Audio-text alignment (RunPod or local)</td></tr>
+        <tr><td><code>/api/alignment/transcribe</code></td><td>POST</td><td>Audio transcription (RunPod only)</td></tr>
+        <tr><td><code>/api/alignment/health</code></td><td>GET</td><td>Health check</td></tr>
+        <tr><td><code>/upload</code></td><td>POST</td><td>File upload + cleaning</td></tr>
+        <tr><td><code>/process-drive</code></td><td>POST</td><td>Google Drive cleaning</td></tr>
+        <tr><td><code>/process-sheet</code></td><td>POST</td><td>Google Sheets batch</td></tr>
+        <tr><td><code>/process-llm</code></td><td>POST</td><td>LLM-assisted cleaning</td></tr>
+        <tr><td><code>/generate-diff</code></td><td>POST</td><td>Diff generation</td></tr>
+      </table>
+
+      <h4 style="margin-top:1rem">Key Environment Variables</h4>
+      <table class="data-table">
+        <tr><th>Variable</th><th>Purpose</th></tr>
+        <tr><td><code>RUNPOD_API_KEY</code></td><td>RunPod serverless API key</td></tr>
+        <tr><td><code>RUNPOD_ENDPOINT_ID</code></td><td>RunPod endpoint identifier</td></tr>
+        <tr><td><code>ALIGNMENT_MODEL</code></td><td>Default: ivrit-ai/yi-whisper-large-v3-turbo-ct2</td></tr>
+        <tr><td><code>ALIGNMENT_DEVICE</code></td><td>auto/cpu/cuda</td></tr>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ====================================================================== -->
+<!-- SECTION B: BRANCH STRATEGY -->
+<!-- ====================================================================== -->
+<section id="branch-strategy">
+  <h2><span class="tag">B</span> Branch Strategy</h2>
+  <p class="section-desc">How to set up the branch, preserve history, and structure commits.</p>
+
+  <details open>
+    <summary>Fork &amp; Branch Setup</summary>
+    <div class="detail-body">
+      <div class="callout">
+        <strong>Recommendation:</strong> Use a <strong>copy-based approach</strong> (not git subtree merge) for the source repos. The mapping site is 3 files and the alignment code needs to be restructured for Laravel. Subtree merge adds complexity without proportional benefit here. Git history of the source repos can be referenced by linking their original repositories.
+      </div>
+
+      <div class="code-label">Step 1: Fork and create feature branch</div>
+<pre><code># Fork Shloimy15e/yiddish-cleaner on GitHub (via web UI or gh CLI)
+gh repo fork Shloimy15e/yiddish-cleaner --clone
+cd yiddish-cleaner
+
+# Create feature branch
+git checkout -b feature/unified-platform
+git push -u origin feature/unified-platform</code></pre>
+
+      <div class="code-label">Step 2: Commit Strategy (logical commits per phase)</div>
+      <table class="data-table">
+        <tr><th>#</th><th>Commit</th><th>Content</th></tr>
+        <tr><td>1</td><td><code>feat: add mapping data model and migration</code></td><td>New migration for audio_mappings table, MappingEntry model</td></tr>
+        <tr><td>2</td><td><code>feat: add mapping controller, routes, and Vue page</code></td><td>MappingController, routes, Mapping/Index.vue</td></tr>
+        <tr><td>3</td><td><code>feat: add mapping data import command</code></td><td>Artisan command to seed mapping data from JSON</td></tr>
+        <tr><td>4</td><td><code>feat: add stable-ts alignment driver (RunPod)</code></td><td>StableTsDriver, RunPod client, config updates</td></tr>
+        <tr><td>5</td><td><code>feat: add local stable-ts alignment scripts</code></td><td>Python scripts under scripts/alignment/</td></tr>
+        <tr><td>6</td><td><code>feat: update alignment config and env for RunPod</code></td><td>Config, .env.example updates</td></tr>
+        <tr><td>7</td><td><code>feat: add mapping sidebar navigation</code></td><td>NavMain updates, sidebar link</td></tr>
+        <tr><td>8</td><td><code>test: add tests for mapping and alignment features</code></td><td>Pest tests</td></tr>
+        <tr><td>9</td><td><code>docs: update README for unified platform</code></td><td>README changes</td></tr>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ====================================================================== -->
+<!-- SECTION C: MAPPING SITE INTEGRATION -->
+<!-- ====================================================================== -->
+<section id="mapping-integration">
+  <h2><span class="tag">C</span> Mapping Site Integration Plan</h2>
+  <p class="section-desc">Integrating the vanilla JS mapping tool as a Laravel/Inertia Vue page.</p>
+
+  <details open>
+    <summary>Integration Architecture</summary>
+    <div class="detail-body">
+      <div class="diagram">
+        <div style="text-align:center; margin-bottom:0.75rem; font-size:0.8rem; color:var(--text-dim)">Mapping Integration Flow</div>
+        <div class="flow-row">
+          <div class="flow-node orange">data.json<small>Static mapping data</small></div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-node blue">Artisan Command<small>php artisan mapping:import</small></div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-node teal">Database Tables<small>audio_mappings + mapping_entries</small></div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-node purple">MappingController<small>Inertia::render()</small></div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-node green">Vue Page<small>Mapping/Index.vue</small></div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Key decision:</strong> The mapping data currently lives in a static JSON file. We will store it in the database so it can be dynamically updated, linked to real AudioSample and Transcription records, and user mapping actions persist server-side instead of localStorage.
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>New Database Tables</summary>
+    <div class="detail-body">
+<pre><code>// Migration: create_mapping_entries_table.php
+
+Schema::create('mapping_entries', function (Blueprint $table) {
+    $table->id();
+
+    // Audio file info (from data.json)
+    $table->string('audio_name')->nullable()->index();
+    $table->string('audio_link', 500)->nullable();
+    $table->float('est_minutes')->nullable();
+
+    // Transcript file info
+    $table->string('transcript_name')->nullable()->index();
+    $table->string('transcript_link', 500)->nullable();
+    $table->text('first_line')->nullable();
+
+    // Metadata parsed from filenames
+    $table->string('year', 10)->nullable()->index();
+    $table->string('month', 20)->nullable()->index();
+    $table->integer('day')->nullable();
+    $table->string('type', 30)->nullable();  // sicha, maamar, farbrengen
+
+    // Match status
+    $table->enum('status', ['matched', 'unmatched_audio', 'unmatched_transcript',
+                            'selected', 'manually_mapped'])->index();
+    $table->json('suggested_matches')->nullable(); // [{name, link, score, matchReason}]
+    $table->float('match_confidence')->nullable();
+    $table->string('match_reason')->nullable();
+
+    // Link to real AudioSample/Transcription when imported
+    $table->foreignId('audio_sample_id')->nullable()->constrained()->nullOnDelete();
+    $table->foreignId('transcription_id')->nullable()->constrained()->nullOnDelete();
+
+    // Manual mapping tracking
+    $table->foreignId('mapped_by')->nullable()->constrained('users')->nullOnDelete();
+    $table->timestamp('mapped_at')->nullable();
+
+    $table->timestamps();
+});</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Controller &amp; Routes</summary>
+    <div class="detail-body">
+      <div class="code-label">New Controller: app/Http/Controllers/MappingController.php</div>
+<pre><code>&lt;?php
+namespace App\Http\Controllers;
+
+use App\Models\MappingEntry;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+
+class MappingController extends Controller
+{
+    public function index(Request $request)
+    {
+        $tab = $request->get('tab', 'selected');
+
+        $stats = [
+            'totalAudio' => MappingEntry::whereNotNull('audio_name')->distinct('audio_name')->count(),
+            'totalTranscripts' => MappingEntry::whereNotNull('transcript_name')->distinct('transcript_name')->count(),
+            'matched' => MappingEntry::where('status', 'matched')->count(),
+            'selected50hr' => MappingEntry::where('status', 'selected')->count(),
+            'unmatchedAudio' => MappingEntry::where('status', 'unmatched_audio')->count(),
+            'unmatchedTranscripts' => MappingEntry::where('status', 'unmatched_transcript')->count(),
+        ];
+
+        $query = MappingEntry::query()
+            ->when($request->year, fn($q, $v) => $q->where('year', $v))
+            ->when($request->month, fn($q, $v) => $q->where('month', $v))
+            ->when($request->type, fn($q, $v) => $q->where('type', $v))
+            ->when($request->search, fn($q, $v) => $q->where(function($q2) use ($v) {
+                $q2->where('audio_name', 'like', "%{$v}%")
+                   ->orWhere('transcript_name', 'like', "%{$v}%")
+                   ->orWhere('first_line', 'like', "%{$v}%");
+            }));
+
+        // Filter by tab
+        $statusMap = [
+            'selected' => 'selected',
+            'matched' => 'matched',
+            'unmatched' => 'unmatched_audio',
+            'transcripts' => 'unmatched_transcript',
+        ];
+        $query->where('status', $statusMap[$tab] ?? 'selected');
+
+        return Inertia::render('Mapping/Index', [
+            'entries' => $query->paginate(50)->withQueryString(),
+            'stats' => $stats,
+            'filters' => $request->only(['tab', 'year', 'month', 'type', 'search']),
+        ]);
+    }
+
+    public function map(Request $request, MappingEntry $entry)
+    {
+        $validated = $request->validate([
+            'matched_name' => 'required|string',
+            'matched_link' => 'nullable|string',
+        ]);
+
+        $entry->update([
+            'status' => 'manually_mapped',
+            'transcript_name' => $entry->status === 'unmatched_audio'
+                ? $validated['matched_name'] : $entry->transcript_name,
+            'audio_name' => $entry->status === 'unmatched_transcript'
+                ? $validated['matched_name'] : $entry->audio_name,
+            'mapped_by' => $request->user()->id,
+            'mapped_at' => now(),
+        ]);
+
+        return back();
+    }
+
+    public function export(Request $request)
+    {
+        // CSV export of manual mappings
+        $entries = MappingEntry::where('status', 'manually_mapped')->get();
+        // ... stream CSV response
+    }
+
+    public function searchTranscripts(Request $request)
+    {
+        return MappingEntry::whereNotNull('transcript_name')
+            ->where('transcript_name', 'like', '%' . $request->q . '%')
+            ->limit(100)
+            ->get(['transcript_name', 'transcript_link', 'year', 'month', 'day']);
+    }
+
+    public function searchAudio(Request $request)
+    {
+        return MappingEntry::whereNotNull('audio_name')
+            ->where('audio_name', 'like', '%' . $request->q . '%')
+            ->limit(100)
+            ->get(['audio_name', 'audio_link', 'year', 'month', 'day', 'est_minutes']);
+    }
+}</code></pre>
+
+      <div class="code-label">Routes to add in routes/web.php</div>
+<pre><code>// ==================== Audio-Text Mapping ====================
+Route::get('/mapping', [MappingController::class, 'index'])->name('mapping.index');
+Route::post('/mapping/{entry}/map', [MappingController::class, 'map'])->name('mapping.map');
+Route::get('/mapping/export', [MappingController::class, 'export'])->name('mapping.export');
+Route::get('/api/mapping/search-transcripts', [MappingController::class, 'searchTranscripts'])
+    ->name('api.mapping.search-transcripts');
+Route::get('/api/mapping/search-audio', [MappingController::class, 'searchAudio'])
+    ->name('api.mapping.search-audio');</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Vue Page &amp; Components</summary>
+    <div class="detail-body">
+      <p>Create <code>resources/js/pages/Mapping/Index.vue</code> as a full Inertia page that replicates the mapping UI using Vue 3 + Tailwind v4 + shadcn-vue components. Key elements to port:</p>
+
+      <div class="file-tree"><span class="new">resources/js/pages/Mapping/Index.vue</span>          <span class="desc"># Main mapping page</span>
+<span class="new">resources/js/components/mapping/</span>
+  <span class="new">MappingStatsGrid.vue</span>                           <span class="desc"># Stats cards (total, matched, etc.)</span>
+  <span class="new">MappingTable.vue</span>                               <span class="desc"># Table with sorting, pagination</span>
+  <span class="new">MappingFilters.vue</span>                             <span class="desc"># Year/month/type/search filters</span>
+  <span class="new">SuggestedMatches.vue</span>                           <span class="desc"># Expandable suggestions per row</span>
+  <span class="new">MappingSearchModal.vue</span>                         <span class="desc"># Bidirectional search modal</span></div>
+
+      <div class="callout">
+        <strong>Port strategy:</strong> Do NOT copy the vanilla JS. Rebuild using Vue 3 Composition API, existing shadcn-vue DataTable, and Inertia server-side pagination. This ensures consistency with the rest of the app and avoids maintaining two UI paradigms.
+      </div>
+
+      <p>The existing UI components to reuse from yiddish-cleaner:</p>
+      <ul style="margin:0.5rem 0 0 1.2rem; color:var(--text-dim); font-size:0.88rem">
+        <li><code>DataTable</code> component for sortable, paginated tables</li>
+        <li><code>Badge</code> for type labels (sicha/maamar/farbrengen)</li>
+        <li><code>Dialog</code> for the search modal</li>
+        <li><code>Input</code> and <code>SelectMenu</code> for filters</li>
+        <li><code>Card</code> for stats grid</li>
+        <li><code>Button</code> for export and actions</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>Data Import Artisan Command</summary>
+    <div class="detail-body">
+      <div class="code-label">app/Console/Commands/ImportMappingData.php</div>
+<pre><code>php artisan make:command ImportMappingData
+
+// The command will:
+// 1. Read public/data.json from yiddish-mapping repo (or a local copy)
+// 2. Parse the JSON and create MappingEntry records
+// 3. Map: selected -> status='selected'
+// 4. Map: matched -> status='matched'
+// 5. Map: unmatchedAudio -> status='unmatched_audio'
+// 6. Map: unmatchedTranscripts -> status='unmatched_transcript'
+// 7. Store suggested_matches as JSON column
+// 8. Attempt to link to existing AudioSample/Transcription records by name
+
+// Usage:
+php artisan mapping:import /path/to/data.json --truncate</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Navigation Integration</summary>
+    <div class="detail-body">
+      <p>Add "Mapping" to the sidebar navigation in <code>resources/js/components/NavMain.vue</code>:</p>
+<pre><code>// Add to the navigation items array:
+{
+  title: 'Mapping',
+  href: route('mapping.index'),
+  icon: LinkIcon,  // from lucide-vue-next
+}</code></pre>
+    </div>
+  </details>
+</section>
+
+<!-- ====================================================================== -->
+<!-- SECTION D: ALIGNMENT TOOLS INTEGRATION -->
+<!-- ====================================================================== -->
+<section id="alignment-integration">
+  <h2><span class="tag">D</span> Alignment Tools Integration Plan</h2>
+  <p class="section-desc">Integrating the Python stable-ts alignment tools into the Laravel application.</p>
+
+  <details open>
+    <summary>Integration Architecture</summary>
+    <div class="detail-body">
+      <div class="diagram">
+        <div style="text-align:center; margin-bottom:0.75rem; font-size:0.8rem; color:var(--text-dim)">Alignment Integration Architecture</div>
+        <div class="flow-row">
+          <div class="flow-node blue">Laravel Controller<small>TranscriptionController::align()</small></div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-node purple">AlignmentManager<small>driver selection</small></div>
+          <span class="flow-arrow">&rarr;</span>
+          <div class="flow-node orange" style="min-width:180px">
+            StableTsDriver
+            <small>NEW: RunPod or HTTP API</small>
+          </div>
+        </div>
+        <div class="flow-row" style="margin-top:0.25rem">
+          <span style="width:200px"></span>
+          <span class="flow-arrow" style="transform:rotate(90deg)">&darr;</span>
+        </div>
+        <div class="flow-row">
+          <div class="flow-node teal">RunPod Serverless<small>GPU: yi-whisper-large-v3-turbo-ct2</small></div>
+          <span style="margin:0 1rem; color:var(--text-dim); font-size:0.8rem">OR</span>
+          <div class="flow-node pink">Local Python<small>scripts/alignment/ (subprocess)</small></div>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Architecture decision:</strong> The yiddish-cleaner app already has an <code>AlignmentManager</code> with a driver pattern. We will add a new <code>StableTsDriver</code> that calls the RunPod serverless endpoint (same as the Python Flask app does), and optionally a <code>LocalStableTsDriver</code> that calls a local Python script via subprocess. This is the exact same pattern as the existing <code>WhisperXDriver</code> and <code>LocalWhisperXDriver</code>.
+      </div>
+
+      <div class="callout warn">
+        <strong>Important:</strong> The heavy ML dependencies (stable-ts, faster-whisper, torch ~2GB) should NOT be installed on the Laravel server. The primary path is RunPod serverless GPU. The local Python scripts are only for development/testing without RunPod.
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>New StableTsDriver (RunPod)</summary>
+    <div class="detail-body">
+      <div class="code-label">app/Services/Alignment/Drivers/StableTsDriver.php</div>
+<pre><code>&lt;?php
+namespace App\Services\Alignment\Drivers;
+
+use App\Services\Alignment\AlignedWord;
+use App\Services\Alignment\AlignmentDriverInterface;
+use App\Services\Alignment\AlignmentResult;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
+
+/**
+ * Stable-TS alignment driver using RunPod serverless.
+ *
+ * Uses the ivrit-ai confusion-aware algorithm with yi-whisper
+ * for high-quality Yiddish forced alignment.
+ */
+class StableTsDriver implements AlignmentDriverInterface
+{
+    protected string $endpointId;
+
+    public function __construct(
+        protected ?string $apiKey,
+        protected string $model = 'ivrit-ai/yi-whisper-large-v3-turbo-ct2',
+    ) {
+        $this->endpointId = config('alignment.providers.stable_ts.endpoint_id', '');
+    }
+
+    public function align(string $audioPath, string $text, array $options = []): AlignmentResult
+    {
+        if (! $this->apiKey || ! $this->endpointId) {
+            throw new RuntimeException('RunPod API key and endpoint ID required for stable-ts alignment');
+        }
+
+        // Upload audio to temporary public URL (S3/R2)
+        $audioUrl = $this->uploadAudioForRunPod($audioPath);
+
+        try {
+            $result = $this->callRunPod([
+                'mode' => 'align',
+                'audio_url' => $audioUrl,
+                'text' => $text,
+                'language' => $options['language'] ?? 'yi',
+            ]);
+
+            return $this->buildResult($result, $text);
+        } finally {
+            // Clean up temporary upload
+            $this->cleanupUpload($audioUrl);
+        }
+    }
+
+    // ... RunPod polling, result parsing, etc.
+    // Port from runpod_client.py
+}</code></pre>
+
+      <div class="code-label">Config addition: config/alignment.php</div>
+<pre><code>'stable_ts' => [
+    'driver' => StableTsDriver::class,
+    'name' => 'Stable-TS (RunPod)',
+    'endpoint_id' => env('RUNPOD_ALIGNMENT_ENDPOINT_ID'),
+    'default_model' => 'ivrit-ai/yi-whisper-large-v3-turbo-ct2',
+    'models' => [
+        'ivrit-ai/yi-whisper-large-v3-turbo-ct2',
+    ],
+    'async' => true,
+    'requires_credential' => true,
+    'description' => 'Confusion-aware Yiddish alignment via RunPod GPU',
+],</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Python Scripts Placement</summary>
+    <div class="detail-body">
+      <p>The Python alignment code from yiddish-audio-alignment goes into <code>scripts/alignment/</code> in the Laravel project:</p>
+
+      <div class="file-tree"><span class="dir">scripts/</span>
+  align.py                          <span class="desc"># Existing WhisperX script (keep)</span>
+  whisper_transcribe.py             <span class="desc"># Existing Whisper script (keep)</span>
+  requirements.txt                  <span class="desc"># Existing (keep)</span>
+  <span class="new">alignment/</span>                       <span class="desc"># NEW: stable-ts alignment</span>
+    <span class="new">__init__.py</span>
+    <span class="new">align.py</span>                        <span class="desc"># From alignment/align.py</span>
+    <span class="new">breakable_aligner.py</span>            <span class="desc"># From alignment/breakable_aligner.py</span>
+    <span class="new">seekable_audio_loader.py</span>        <span class="desc"># From alignment/seekable_audio_loader.py</span>
+    <span class="new">utils.py</span>                        <span class="desc"># From alignment/utils.py</span>
+    <span class="new">run_alignment.py</span>                <span class="desc"># NEW: CLI entrypoint for subprocess call</span>
+    <span class="new">requirements.txt</span>                <span class="desc"># stable-ts, faster-whisper, torch, numpy, tqdm</span>
+  <span class="new">runpod_handler/</span>                  <span class="desc"># NEW: RunPod serverless handler</span>
+    <span class="new">Dockerfile</span>                      <span class="desc"># From runpod/Dockerfile</span>
+    <span class="new">handler.py</span>                      <span class="desc"># From runpod/handler.py</span></div>
+
+      <div class="code-label">scripts/alignment/run_alignment.py (subprocess entrypoint)</div>
+<pre><code>#!/usr/bin/env python3
+"""
+CLI entrypoint for stable-ts alignment.
+Called by Laravel LocalStableTsDriver via subprocess.
+
+Usage:
+    python run_alignment.py &lt;audio_path&gt; &lt;text_file_path&gt; [--language yi] [--model ...]
+
+Output: JSON to stdout with word-level timestamps
+"""
+import argparse, json, sys
+from align import align_transcript_to_audio
+from utils import get_breakable_align_model
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('audio_path')
+    parser.add_argument('text_path')
+    parser.add_argument('--language', default='yi')
+    parser.add_argument('--model', default='ivrit-ai/yi-whisper-large-v3-turbo-ct2')
+    parser.add_argument('--device', default='auto')
+    parser.add_argument('--compute-type', default='int8')
+    args = parser.parse_args()
+
+    with open(args.text_path, 'r', encoding='utf-8') as f:
+        text = f.read().strip()
+
+    model = get_breakable_align_model(args.model, args.device, args.compute_type)
+    result = align_transcript_to_audio(
+        audio_file=args.audio_path, transcript=text,
+        model=model, language=args.language
+    )
+
+    # Convert WhisperResult to JSON
+    words = []
+    for seg in result.segments:
+        if hasattr(seg, 'words') and seg.words:
+            for w in seg.words:
+                words.append({
+                    'word': w.word.strip(),
+                    'start': round(w.start, 3),
+                    'end': round(w.end, 3),
+                    'confidence': round(w.probability, 4) if hasattr(w, 'probability') else None,
+                })
+
+    print(json.dumps({'success': True, 'words': words, 'word_count': len(words)}))
+
+if __name__ == '__main__':
+    main()</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Environment Variable Updates</summary>
+    <div class="detail-body">
+      <div class="code-label">Additions to .env.example</div>
+<pre><code># ==================== RunPod Alignment (stable-ts) ====================
+# GPU-accelerated Yiddish alignment via RunPod serverless
+RUNPOD_API_KEY=
+RUNPOD_ALIGNMENT_ENDPOINT_ID=
+
+# Default alignment provider: local_whisperx, whisperx, stable_ts
+ALIGNMENT_DEFAULT_PROVIDER=stable_ts
+
+# For local stable-ts alignment (development only, requires GPU):
+# STABLE_TS_PYTHON_PATH=python3
+# STABLE_TS_DEVICE=auto
+# STABLE_TS_COMPUTE_TYPE=int8
+# STABLE_TS_MODEL=ivrit-ai/yi-whisper-large-v3-turbo-ct2</code></pre>
+    </div>
+  </details>
+</section>
+
+<!-- ====================================================================== -->
+<!-- SECTION E: DATABASE CONSOLIDATION -->
+<!-- ====================================================================== -->
+<section id="database">
+  <h2><span class="tag">E</span> Database Consolidation</h2>
+  <p class="section-desc">Schema additions and unified data model.</p>
+
+  <details open>
+    <summary>Unified Data Model Diagram</summary>
+    <div class="detail-body">
+      <div class="diagram">
+        <div style="text-align:center; margin-bottom:1rem; font-size:0.8rem; color:var(--text-dim)">Entity Relationship Overview</div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem;">
+          <div style="background:var(--surface2); border-radius:8px; padding:0.75rem; border:1px solid var(--border);">
+            <div style="font-weight:700; font-size:0.85rem; color:var(--accent); margin-bottom:0.4rem">AudioSample</div>
+            <div style="font-size:0.75rem; color:var(--text-dim); line-height:1.8">
+              id, user_id, name<br>
+              source_url, audio_duration_seconds<br>
+              status (new/in_progress/review/done)<br>
+              is_benchmark, error_message<br>
+              <em>Media: audio (mp3/wav/flac/m4a)</em>
+            </div>
+          </div>
+          <div style="background:var(--surface2); border-radius:8px; padding:0.75rem; border:1px solid var(--border);">
+            <div style="font-weight:700; font-size:0.85rem; color:var(--green); margin-bottom:0.4rem">Transcription</div>
+            <div style="font-size:0.75rem; color:var(--text-dim); line-height:1.8">
+              id, user_id, type (base/asr), name<br>
+              text_raw, text_clean, hypothesis_text<br>
+              clean_rate, wer, cer<br>
+              alignment_status, alignment_provider<br>
+              validated_at, flagged_for_training<br>
+              <em>Media: source_file, cleaned_file</em>
+            </div>
+          </div>
+          <div style="background:var(--surface2); border-radius:8px; padding:0.75rem; border:1px solid var(--border);">
+            <div style="font-weight:700; font-size:0.85rem; color:var(--orange); margin-bottom:0.4rem">TranscriptionWord</div>
+            <div style="font-size:0.75rem; color:var(--text-dim); line-height:1.8">
+              id, transcription_id<br>
+              word_index, word<br>
+              start_time, end_time, confidence<br>
+              corrected_word, is_deleted<br>
+              is_inserted, is_critical_error
+            </div>
+          </div>
+          <div style="background:var(--surface2); border-radius:8px; padding:0.75rem; border:1px solid var(--border);">
+            <div style="font-weight:700; font-size:0.85rem; color:var(--purple); margin-bottom:0.4rem">TranscriptionSegment</div>
+            <div style="font-size:0.75rem; color:var(--text-dim); line-height:1.8">
+              id, transcription_id<br>
+              segment_index, text, corrected_text<br>
+              start_time, end_time, confidence<br>
+              words_json
+            </div>
+          </div>
+          <div style="background:var(--surface2); border-radius:8px; padding:0.75rem; border:1px solid var(--border); border-color:var(--green);">
+            <div style="font-weight:700; font-size:0.85rem; color:var(--green); margin-bottom:0.4rem">MappingEntry <span class="cx cx-low" style="margin-left:0.3rem">NEW</span></div>
+            <div style="font-size:0.75rem; color:var(--text-dim); line-height:1.8">
+              id, audio_name, audio_link<br>
+              transcript_name, transcript_link<br>
+              year, month, day, type, est_minutes<br>
+              status, suggested_matches (JSON)<br>
+              audio_sample_id FK, transcription_id FK<br>
+              mapped_by FK, mapped_at
+            </div>
+          </div>
+          <div style="background:var(--surface2); border-radius:8px; padding:0.75rem; border:1px solid var(--border);">
+            <div style="font-weight:700; font-size:0.85rem; color:var(--text-dim); margin-bottom:0.4rem">Pivot &amp; Supporting</div>
+            <div style="font-size:0.75rem; color:var(--text-dim); line-height:1.8">
+              audio_sample_transcription (M2M)<br>
+              processing_runs<br>
+              training_versions<br>
+              api_credentials<br>
+              users + permissions
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>New Migration: mapping_entries</summary>
+    <div class="detail-body">
+      <p>Only ONE new table is needed. The existing schema already covers audio files, transcripts, word-level timestamps, alignments, pipeline status, benchmark sets, and WER scores.</p>
+
+<pre><code>// database/migrations/2026_XX_XX_create_mapping_entries_table.php
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create('mapping_entries', function (Blueprint $table) {
+            $table->id();
+
+            $table->string('audio_name')->nullable()->index();
+            $table->string('audio_link', 500)->nullable();
+            $table->float('est_minutes')->nullable();
+
+            $table->string('transcript_name')->nullable()->index();
+            $table->string('transcript_link', 500)->nullable();
+            $table->text('first_line')->nullable();
+
+            $table->string('year', 10)->nullable()->index();
+            $table->string('month', 20)->nullable()->index();
+            $table->integer('day')->nullable();
+            $table->string('type', 30)->nullable();
+
+            $table->string('status', 30)->default('unmatched_audio')->index();
+            $table->json('suggested_matches')->nullable();
+            $table->float('match_confidence')->nullable();
+            $table->string('match_reason')->nullable();
+
+            $table->foreignId('audio_sample_id')->nullable()
+                ->constrained('audio_samples')->nullOnDelete();
+            $table->foreignId('transcription_id')->nullable()
+                ->constrained('transcriptions')->nullOnDelete();
+
+            $table->foreignId('mapped_by')->nullable()
+                ->constrained('users')->nullOnDelete();
+            $table->timestamp('mapped_at')->nullable();
+
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('mapping_entries');
+    }
+};</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Schema Differences &amp; Existing Coverage</summary>
+    <div class="detail-body">
+      <table class="data-table">
+        <tr><th>Data Domain</th><th>Already in yiddish-cleaner?</th><th>Action Needed</th></tr>
+        <tr><td>Audio files</td><td style="color:var(--green)">Yes - AudioSample + Spatie Media</td><td>None</td></tr>
+        <tr><td>Transcripts (multiple versions)</td><td style="color:var(--green)">Yes - Transcription (base/asr types)</td><td>None</td></tr>
+        <tr><td>Audio-transcript mappings</td><td style="color:var(--red)">No</td><td>Add mapping_entries table</td></tr>
+        <tr><td>Word-level timestamps</td><td style="color:var(--green)">Yes - TranscriptionWord</td><td>None</td></tr>
+        <tr><td>Segment-level timestamps</td><td style="color:var(--green)">Yes - TranscriptionSegment</td><td>None</td></tr>
+        <tr><td>Alignment status tracking</td><td style="color:var(--green)">Yes - alignment_* columns on Transcription</td><td>None</td></tr>
+        <tr><td>Pipeline status</td><td style="color:var(--green)">Yes - ProcessingRun, AudioSampleStatusHistory</td><td>None</td></tr>
+        <tr><td>Benchmark set management</td><td style="color:var(--green)">Yes - is_benchmark on AudioSample</td><td>None</td></tr>
+        <tr><td>WER scores</td><td style="color:var(--green)">Yes - wer/cer/substitutions/insertions/deletions on Transcription</td><td>None</td></tr>
+        <tr><td>RunPod configuration</td><td style="color:var(--yellow)">Partial - config exists, need stable-ts provider</td><td>Add to config/alignment.php</td></tr>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ====================================================================== -->
+<!-- SECTION F: API DESIGN -->
+<!-- ====================================================================== -->
+<section id="api-design">
+  <h2><span class="tag">F</span> API Design</h2>
+  <p class="section-desc">Unified API endpoint list for the merged application.</p>
+
+  <details open>
+    <summary>Complete API Endpoint List</summary>
+    <div class="detail-body">
+      <table class="data-table">
+        <tr><th>Method</th><th>Endpoint</th><th>Auth</th><th>Description</th><th>Source</th></tr>
+        <tr><td><span class="status status-done">GET</span></td><td><code>/mapping</code></td><td>Yes</td><td>Mapping dashboard (Inertia page)</td><td class="cx cx-low">NEW</td></tr>
+        <tr><td><span class="status status-wip">POST</span></td><td><code>/mapping/{entry}/map</code></td><td>Yes</td><td>Save manual audio-transcript mapping</td><td class="cx cx-low">NEW</td></tr>
+        <tr><td><span class="status status-done">GET</span></td><td><code>/mapping/export</code></td><td>Yes</td><td>Export mappings as CSV</td><td class="cx cx-low">NEW</td></tr>
+        <tr><td><span class="status status-done">GET</span></td><td><code>/api/mapping/search-transcripts</code></td><td>Yes</td><td>Search transcript entries for modal</td><td class="cx cx-low">NEW</td></tr>
+        <tr><td><span class="status status-done">GET</span></td><td><code>/api/mapping/search-audio</code></td><td>Yes</td><td>Search audio entries for modal</td><td class="cx cx-low">NEW</td></tr>
+        <tr><td colspan="5" style="background:var(--surface2); font-weight:700; font-size:0.8rem; color:var(--text-dim)">EXISTING ENDPOINTS (unchanged)</td></tr>
+        <tr><td><span class="status status-done">GET</span></td><td><code>/audio-samples</code></td><td>Yes</td><td>Audio samples list</td><td>Existing</td></tr>
+        <tr><td><span class="status status-wip">POST</span></td><td><code>/audio-samples/{id}/transcribe</code></td><td>Yes</td><td>Trigger ASR transcription</td><td>Existing</td></tr>
+        <tr><td><span class="status status-done">GET</span></td><td><code>/transcriptions</code></td><td>Yes</td><td>Base transcriptions list</td><td>Existing</td></tr>
+        <tr><td><span class="status status-wip">POST</span></td><td><code>/transcriptions/{id}/clean</code></td><td>Yes</td><td>Clean a transcription</td><td>Existing</td></tr>
+        <tr><td><span class="status status-wip">POST</span></td><td><code>/transcriptions/{id}/align</code></td><td>Yes</td><td>Trigger alignment (now with stable-ts option)</td><td>Modified</td></tr>
+        <tr><td><span class="status status-done">GET</span></td><td><code>/api/alignment/providers</code></td><td>Yes</td><td>List alignment providers (includes stable_ts)</td><td>Modified</td></tr>
+        <tr><td><span class="status status-done">GET</span></td><td><code>/benchmark</code></td><td>No</td><td>Public benchmark dashboard</td><td>Existing</td></tr>
+      </table>
+
+      <div class="callout">
+        <strong>Auth:</strong> All endpoints except <code>/benchmark/*</code> and <code>/docs</code> require authentication via Laravel Fortify (session-based, with optional 2FA). The existing auth middleware applies. No API tokens are needed since this is an Inertia SPA.
+      </div>
+
+      <h4 style="margin-top:1rem">Alignment Request/Response Format</h4>
+      <div class="code-label">POST /transcriptions/{id}/align</div>
+<pre><code>// Request (form data via Inertia)
+{
+  "provider": "stable_ts",  // or "local_whisperx", "whisperx"
+  "model": null,            // optional override
+  "overwrite": false        // overwrite existing word data
+}
+
+// Response: Redirect back (Inertia) with flash message
+// Alignment runs asynchronously via AlignTranscriptionJob queue
+
+// When complete, TranscriptionWord records are created:
+{
+  "transcription_id": 42,
+  "word_index": 0,
+  "word": "\u05d1\u05e8\u05d0\u05e9\u05d9\u05ea",
+  "start_time": 0.120,
+  "end_time": 0.580,
+  "confidence": 0.943
+}</code></pre>
+    </div>
+  </details>
+</section>
+
+<!-- ====================================================================== -->
+<!-- SECTION G: IMPLEMENTATION CHECKLIST -->
+<!-- ====================================================================== -->
+<section id="implementation">
+  <h2><span class="tag">G</span> Step-by-Step Implementation Checklist</h2>
+  <p class="section-desc">Ordered list of exact steps. Each step is specific enough to act on.</p>
+
+  <details open>
+    <summary>Phase 1: Setup &amp; Branch <span class="cx cx-low">Low</span></summary>
+    <div class="detail-body">
+      <ol class="checklist">
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Fork and create branch</strong>
+<pre><code>gh repo fork Shloimy15e/yiddish-cleaner --clone
+cd yiddish-cleaner
+git checkout -b feature/unified-platform
+git push -u origin feature/unified-platform</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Clone source repos for reference</strong>
+<pre><code>git clone https://github.com/Abe1018776/yiddish-mapping.git /tmp/yiddish-mapping
+git clone -b feature/stable-ts-alignment https://github.com/Abe1018776/yiddish-audio-alignment.git /tmp/yiddish-audio-alignment</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Verify yiddish-cleaner builds and tests pass</strong>
+<pre><code>composer install && npm install
+php artisan migrate
+php artisan test --compact
+npm run build</code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Phase 2: Mapping Database &amp; Model <span class="cx cx-low">Low</span></summary>
+    <div class="detail-body">
+      <ol class="checklist">
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create migration</strong>
+<pre><code>php artisan make:migration create_mapping_entries_table --no-interaction</code></pre>
+            <p style="color:var(--text-dim); font-size:0.82rem">Add the schema from Section E (mapping_entries table with audio/transcript columns, status enum, FKs, JSON suggested_matches).</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create Model</strong>
+<pre><code>php artisan make:model MappingEntry --factory --no-interaction</code></pre>
+            <p style="color:var(--text-dim); font-size:0.82rem">Define fillable, casts, relationships to AudioSample, Transcription, User. Add scopes: matched(), unmatched(), selected(), manuallyMapped().</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Run migration</strong>
+<pre><code>php artisan migrate</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Commit</strong>
+<pre><code>git add database/migrations/*mapping* app/Models/MappingEntry.php database/factories/MappingEntryFactory.php
+git commit -m "feat: add mapping_entries table and MappingEntry model"</code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Phase 3: Mapping Import Command <span class="cx cx-med">Medium</span></summary>
+    <div class="detail-body">
+      <ol class="checklist">
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create Artisan command</strong>
+<pre><code>php artisan make:command ImportMappingData --no-interaction</code></pre>
+            <p style="color:var(--text-dim); font-size:0.82rem">Signature: <code>mapping:import {path} {--truncate}</code>. Read data.json, parse all arrays (selected, matched, unmatchedAudio, unmatchedTranscripts), create MappingEntry records.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Copy data.json into project</strong>
+<pre><code>cp /tmp/yiddish-mapping/public/data.json storage/app/mapping-data.json</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Test the import</strong>
+<pre><code>php artisan mapping:import storage/app/mapping-data.json --truncate</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Commit</strong>
+<pre><code>git add app/Console/Commands/ImportMappingData.php storage/app/mapping-data.json
+git commit -m "feat: add mapping data import command with data.json"</code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Phase 4: Mapping Controller &amp; Routes <span class="cx cx-med">Medium</span></summary>
+    <div class="detail-body">
+      <ol class="checklist">
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create controller</strong>
+<pre><code>php artisan make:controller MappingController --no-interaction</code></pre>
+            <p style="color:var(--text-dim); font-size:0.82rem">Add index(), map(), export(), searchTranscripts(), searchAudio() methods as shown in Section C.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Add routes to routes/web.php</strong>
+            <p style="color:var(--text-dim); font-size:0.82rem">Inside the authenticated middleware group. See Section C for exact route definitions.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create Form Request for mapping validation</strong>
+<pre><code>php artisan make:request MapEntryRequest --no-interaction</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Commit</strong>
+<pre><code>git add app/Http/Controllers/MappingController.php app/Http/Requests/MapEntryRequest.php routes/web.php
+git commit -m "feat: add mapping controller, routes, and form request"</code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Phase 5: Mapping Vue Page <span class="cx cx-high">High</span></summary>
+    <div class="detail-body">
+      <ol class="checklist">
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create page and components</strong>
+<pre><code>mkdir -p resources/js/pages/Mapping
+mkdir -p resources/js/components/mapping</code></pre>
+            <p style="color:var(--text-dim); font-size:0.82rem">Create: Index.vue, MappingStatsGrid.vue, MappingTable.vue, MappingFilters.vue, SuggestedMatches.vue, MappingSearchModal.vue</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Build Index.vue page</strong>
+            <p style="color:var(--text-dim); font-size:0.82rem">Use existing shadcn-vue components (DataTable, Card, Badge, Dialog, Input, SelectMenu, Button). Implement tabs via URL query params (?tab=selected). Use Inertia server-side pagination. RTL text support for first_line column.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Add TypeScript types</strong>
+<pre><code>// resources/js/types/mapping.ts
+export interface MappingEntry {
+  id: number;
+  audio_name: string | null;
+  audio_link: string | null;
+  transcript_name: string | null;
+  transcript_link: string | null;
+  est_minutes: number | null;
+  first_line: string | null;
+  year: string | null;
+  month: string | null;
+  day: number | null;
+  type: string | null;
+  status: string;
+  suggested_matches: SuggestedMatch[] | null;
+  audio_sample_id: number | null;
+  transcription_id: number | null;
+  mapped_by: number | null;
+  mapped_at: string | null;
+}
+export interface SuggestedMatch {
+  name: string; link: string; score: number; matchReason: string;
+}</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Add sidebar navigation link</strong>
+            <p style="color:var(--text-dim); font-size:0.82rem">Edit <code>resources/js/components/NavMain.vue</code> to add Mapping item between Transcriptions and Benchmark.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Build and verify</strong>
+<pre><code>npm run build
+# Verify page loads at /mapping</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Commit</strong>
+<pre><code>git add resources/js/pages/Mapping/ resources/js/components/mapping/ resources/js/types/mapping.ts resources/js/components/NavMain.vue
+git commit -m "feat: add mapping Vue page with filtering, sorting, and manual mapping"</code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Phase 6: Stable-TS Alignment Driver <span class="cx cx-high">High</span></summary>
+    <div class="detail-body">
+      <ol class="checklist">
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create StableTsDriver</strong>
+<pre><code>touch app/Services/Alignment/Drivers/StableTsDriver.php</code></pre>
+            <p style="color:var(--text-dim); font-size:0.82rem">Implement AlignmentDriverInterface. Port RunPod client logic from <code>runpod_client.py</code>: runsync call, polling, result parsing. Use Laravel Http facade. Map output to AlignedWord objects.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create LocalStableTsDriver (optional)</strong>
+<pre><code>touch app/Services/Alignment/Drivers/LocalStableTsDriver.php</code></pre>
+            <p style="color:var(--text-dim); font-size:0.82rem">Similar to existing LocalWhisperXDriver. Calls <code>scripts/alignment/run_alignment.py</code> via <code>Process</code> facade. Parses JSON output from stdout.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Update config/alignment.php</strong>
+            <p style="color:var(--text-dim); font-size:0.82rem">Add 'stable_ts' provider entry with driver class, endpoint_id from env, model list, requires_credential flag.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Register in AlignmentManager</strong>
+            <p style="color:var(--text-dim); font-size:0.82rem">Add <code>'stable_ts' => StableTsDriver::class</code> to the match expression in <code>getDriverClass()</code>.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Update .env.example</strong>
+            <p style="color:var(--text-dim); font-size:0.82rem">Add RUNPOD_API_KEY, RUNPOD_ALIGNMENT_ENDPOINT_ID, ALIGNMENT_DEFAULT_PROVIDER variables.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Commit</strong>
+<pre><code>git add app/Services/Alignment/Drivers/StableTsDriver.php app/Services/Alignment/Drivers/LocalStableTsDriver.php config/alignment.php app/Services/Alignment/AlignmentManager.php .env.example
+git commit -m "feat: add stable-ts alignment driver with RunPod and local backends"</code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Phase 7: Python Alignment Scripts <span class="cx cx-med">Medium</span></summary>
+    <div class="detail-body">
+      <ol class="checklist">
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Copy alignment Python code</strong>
+<pre><code>mkdir -p scripts/alignment
+cp /tmp/yiddish-audio-alignment/alignment/__init__.py scripts/alignment/
+cp /tmp/yiddish-audio-alignment/alignment/align.py scripts/alignment/
+cp /tmp/yiddish-audio-alignment/alignment/breakable_aligner.py scripts/alignment/
+cp /tmp/yiddish-audio-alignment/alignment/seekable_audio_loader.py scripts/alignment/
+cp /tmp/yiddish-audio-alignment/alignment/utils.py scripts/alignment/</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create run_alignment.py CLI entrypoint</strong>
+            <p style="color:var(--text-dim); font-size:0.82rem">See Section D for the script. JSON output to stdout, errors to stderr.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create requirements file</strong>
+<pre><code>cat > scripts/alignment/requirements.txt << 'EOF'
+# Heavy ML dependencies - install only for local alignment development
+stable-ts>=2.16.0
+faster-whisper>=1.0.0
+torch>=2.0.0
+numpy>=1.24.0
+tqdm>=4.65.0
+EOF</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Copy RunPod handler</strong>
+<pre><code>mkdir -p scripts/runpod_handler
+cp /tmp/yiddish-audio-alignment/runpod/Dockerfile scripts/runpod_handler/
+cp /tmp/yiddish-audio-alignment/runpod/handler.py scripts/runpod_handler/</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Update .gitignore</strong>
+            <p style="color:var(--text-dim); font-size:0.82rem">Add <code>scripts/alignment/venv/</code> and <code>scripts/alignment/__pycache__/</code>.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Commit</strong>
+<pre><code>git add scripts/alignment/ scripts/runpod_handler/ .gitignore
+git commit -m "feat: add stable-ts alignment Python scripts and RunPod handler"</code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Phase 8: Tests <span class="cx cx-med">Medium</span></summary>
+    <div class="detail-body">
+      <ol class="checklist">
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create mapping feature tests</strong>
+<pre><code>php artisan make:test MappingTest --pest --no-interaction</code></pre>
+            <p style="color:var(--text-dim); font-size:0.82rem">Test: index page loads, filtering works, manual mapping saves, CSV export, search endpoints.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Create StableTsDriver unit test</strong>
+<pre><code>php artisan make:test StableTsDriverTest --pest --unit --no-interaction</code></pre>
+            <p style="color:var(--text-dim); font-size:0.82rem">Test: RunPod result parsing, error handling, retry logic. Use Http::fake() for mocking.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Test import command</strong>
+<pre><code>php artisan make:test ImportMappingDataTest --pest --no-interaction</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Run all tests</strong>
+<pre><code>php artisan test --compact</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Run linting</strong>
+<pre><code>vendor/bin/pint --dirty
+npm run lint</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Commit</strong>
+<pre><code>git add tests/
+git commit -m "test: add tests for mapping features and stable-ts alignment driver"</code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Phase 9: Final Polish &amp; PR <span class="cx cx-low">Low</span></summary>
+    <div class="detail-body">
+      <ol class="checklist">
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Update README.md</strong>
+            <p style="color:var(--text-dim); font-size:0.82rem">Add sections for Mapping feature and RunPod alignment setup. Add new env vars documentation.</p>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Final build verification</strong>
+<pre><code>npm run build
+php artisan test --compact
+vendor/bin/pint --test</code></pre>
+          </div>
+        </li>
+        <li>
+          <span class="box"></span>
+          <div>
+            <strong>Push and create PR</strong>
+<pre><code>git push origin feature/unified-platform
+gh pr create --repo Shloimy15e/yiddish-cleaner \
+  --title "feat: integrate mapping site and stable-ts alignment" \
+  --body "$(cat pr-description.md)"</code></pre>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </details>
+
+  <details>
+    <summary>Complexity Summary</summary>
+    <div class="detail-body">
+      <table class="data-table">
+        <tr><th>Phase</th><th>Description</th><th>Complexity</th><th>Estimated Effort</th></tr>
+        <tr><td>1</td><td>Setup &amp; Branch</td><td><span class="cx cx-low">Low</span></td><td>15 min</td></tr>
+        <tr><td>2</td><td>Mapping Database &amp; Model</td><td><span class="cx cx-low">Low</span></td><td>30 min</td></tr>
+        <tr><td>3</td><td>Mapping Import Command</td><td><span class="cx cx-med">Medium</span></td><td>1 hour</td></tr>
+        <tr><td>4</td><td>Mapping Controller &amp; Routes</td><td><span class="cx cx-med">Medium</span></td><td>1 hour</td></tr>
+        <tr><td>5</td><td>Mapping Vue Page</td><td><span class="cx cx-high">High</span></td><td>3-4 hours</td></tr>
+        <tr><td>6</td><td>Stable-TS Alignment Driver</td><td><span class="cx cx-high">High</span></td><td>2-3 hours</td></tr>
+        <tr><td>7</td><td>Python Alignment Scripts</td><td><span class="cx cx-med">Medium</span></td><td>1 hour</td></tr>
+        <tr><td>8</td><td>Tests</td><td><span class="cx cx-med">Medium</span></td><td>1.5 hours</td></tr>
+        <tr><td>9</td><td>Final Polish &amp; PR</td><td><span class="cx cx-low">Low</span></td><td>30 min</td></tr>
+        <tr><td colspan="3" style="text-align:right; font-weight:700">Total Estimated</td><td style="font-weight:700; color:var(--accent)">10-12 hours</td></tr>
+      </table>
+    </div>
+  </details>
+</section>
+
+<!-- ====================================================================== -->
+<!-- SECTION H: PR DESCRIPTION DRAFT -->
+<!-- ====================================================================== -->
+<section id="pr-description">
+  <h2><span class="tag">H</span> PR Description Draft</h2>
+  <p class="section-desc">Title, description, and testing instructions for the pull request to Shloimy15e/yiddish-cleaner.</p>
+
+  <details open>
+    <summary>PR Title &amp; Body</summary>
+    <div class="detail-body">
+      <div class="callout">
+        <strong>PR Title:</strong> feat: integrate audio-text mapping and stable-ts alignment
+      </div>
+
+<pre><code>## Summary
+
+This PR merges functionality from two external repositories into the unified yiddish-cleaner platform:
+
+- **Audio-Text Mapping** (from [yiddish-mapping](https://github.com/Abe1018776/yiddish-mapping)):
+  Adds a new Mapping page where users can view, filter, and manually map audio files
+  to transcript files. Includes 4669 audio records and 1065 transcript records from
+  Google Drive with suggested match scores.
+
+- **Stable-TS Alignment** (from [yiddish-audio-alignment](https://github.com/Abe1018776/yiddish-audio-alignment),
+  branch `feature/stable-ts-alignment`): Adds a new alignment driver using the
+  ivrit-ai confusion-aware algorithm with the yi-whisper Yiddish model. Supports
+  RunPod serverless GPU for production and local Python scripts for development.
+
+## Changes
+
+### Database
+- New `mapping_entries` table for audio-text mapping data
+- New `MappingEntry` model with factory
+
+### Backend
+- `MappingController` with index, map, export, search endpoints
+- `ImportMappingData` artisan command to seed mapping data from JSON
+- `StableTsDriver` alignment driver (RunPod serverless)
+- `LocalStableTsDriver` alignment driver (local Python subprocess)
+- Updated `config/alignment.php` with `stable_ts` provider
+- Updated `.env.example` with RunPod environment variables
+
+### Frontend
+- New `Mapping/Index.vue` Inertia page with:
+  - 4 tabs: 50-Hour Selection, All Matched, Unmatched Audio, Unmatched Transcripts
+  - Filtering by year, month, type, and text search
+  - Expandable suggested matches with confidence scores
+  - Bidirectional search modal for manual mapping
+  - CSV export of manual mappings
+- Sidebar navigation updated with Mapping link
+
+### Python Scripts
+- `scripts/alignment/` - stable-ts alignment code (align.py, breakable_aligner.py, etc.)
+- `scripts/alignment/run_alignment.py` - CLI entrypoint for local alignment
+- `scripts/runpod_handler/` - RunPod serverless handler for GPU alignment
+
+## Environment Variables (new)
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `RUNPOD_API_KEY` | For stable-ts alignment | RunPod API authentication |
+| `RUNPOD_ALIGNMENT_ENDPOINT_ID` | For stable-ts alignment | RunPod endpoint identifier |
+| `ALIGNMENT_DEFAULT_PROVIDER` | No (default: local_whisperx) | Set to `stable_ts` for RunPod |
+
+## Test Plan
+
+- [ ] Run `php artisan migrate` -- new mapping_entries table created
+- [ ] Run `php artisan mapping:import storage/app/mapping-data.json` -- records imported
+- [ ] Navigate to `/mapping` -- page loads with stats and data
+- [ ] Test tab switching (Selected / Matched / Unmatched Audio / Unmatched Transcripts)
+- [ ] Test filters (year, month, type, search)
+- [ ] Test manual mapping on Unmatched Audio tab -- select a suggested match
+- [ ] Test search modal -- open, search, select
+- [ ] Test CSV export -- downloads valid CSV
+- [ ] Verify alignment providers list includes "Stable-TS (RunPod)" at `/api/alignment/providers`
+- [ ] If RunPod credentials configured: trigger alignment on a transcription, verify word data created
+- [ ] Run `php artisan test --compact` -- all tests pass
+- [ ] Run `npm run build` -- frontend builds successfully
+
+## Breaking Changes
+
+None. All existing routes, models, and features remain unchanged. The new mapping
+feature is additive. The stable-ts driver is a new option alongside existing alignment
+providers.
+
+## Related Repositories
+
+- Source: [yiddish-mapping](https://github.com/Abe1018776/yiddish-mapping)
+- Source: [yiddish-audio-alignment](https://github.com/Abe1018776/yiddish-audio-alignment)
+  (branch: `feature/stable-ts-alignment`)
+- Architecture: [Alignment Architecture](https://htmlpreview.github.io/?https://github.com/Abe1018776/yiddish-audio-alignment/blob/feature/stable-ts-alignment/architecture.html)
+- Architecture: [Mapping Architecture](https://mapping.kohnai.ai/architecture?v=2)
+</code></pre>
+    </div>
+  </details>
+</section>
+
+<!-- ====================================================================== -->
+<!-- APPENDIX -->
+<!-- ====================================================================== -->
+<section>
+  <h2><span class="tag">+</span> Appendix: What NOT to Merge</h2>
+  <p class="section-desc">Parts of the source repositories that are already replicated in yiddish-cleaner or should be excluded.</p>
+
+  <details>
+    <summary>Excluded Components</summary>
+    <div class="detail-body">
+      <table class="data-table">
+        <tr><th>Component</th><th>Source Repo</th><th>Reason for Exclusion</th></tr>
+        <tr><td><code>cleaner.py</code>, <code>processors/</code>, <code>clean_rate.py</code></td><td>yiddish-audio-alignment</td><td>Already ported to <code>app/Services/Cleaning/</code> in Laravel</td></tr>
+        <tr><td><code>diff_utils.py</code></td><td>yiddish-audio-alignment</td><td>Already ported to <code>app/Services/Cleaning/DiffService.php</code></td></tr>
+        <tr><td><code>document_processor.py</code>, <code>converter.py</code></td><td>yiddish-audio-alignment</td><td>Already ported to <code>app/Services/Document/</code></td></tr>
+        <tr><td><code>drive_downloader.py</code>, <code>sheet_processor.py</code></td><td>yiddish-audio-alignment</td><td>Already ported to <code>app/Services/Google/</code></td></tr>
+        <tr><td><code>llm_processor.py</code></td><td>yiddish-audio-alignment</td><td>Already ported to <code>app/Services/Llm/</code></td></tr>
+        <tr><td><code>app.py</code> (Flask routes)</td><td>yiddish-audio-alignment</td><td>All routes already exist as Laravel controllers</td></tr>
+        <tr><td><code>templates/index.html</code></td><td>yiddish-audio-alignment</td><td>Flask frontend replaced by Vue/Inertia</td></tr>
+        <tr><td><code>site/</code> directory</td><td>yiddish-audio-alignment</td><td>Cloudflare Pages demo; functionality absorbed into Laravel</td></tr>
+        <tr><td><code>reference/</code> directory</td><td>yiddish-audio-alignment</td><td>Reference implementations of ivrit-ai code; not needed</td></tr>
+        <tr><td><code>writers/</code> directory</td><td>yiddish-audio-alignment</td><td>Already ported to <code>app/Services/DocxWriterService.php</code></td></tr>
+        <tr><td><code>registry.py</code>, <code>mapping_config.py</code></td><td>yiddish-audio-alignment</td><td>Config data; mapping info goes to database</td></tr>
+        <tr><td><code>update_firstline.py</code></td><td>yiddish-mapping</td><td>One-time data preparation script</td></tr>
+      </table>
+
+      <div class="callout">
+        <strong>Key insight:</strong> The yiddish-cleaner Laravel app has already replicated most of the Python Flask app's functionality in PHP. The only truly new components from the source repos are: (1) the mapping UI/data, and (2) the stable-ts confusion-aware alignment algorithm + RunPod integration. Everything else is already present.
+      </div>
+    </div>
+  </details>
+</section>
+
+</main>
+
+<footer style="text-align:center; padding:2rem; color:var(--text-dim); font-size:0.8rem; border-top:1px solid var(--border);">
+  Technical Merge Plan -- Generated 2026-02-27 -- yiddish-cleaner + yiddish-mapping + yiddish-audio-alignment
+</footer>
+
+</body>
+</html>
