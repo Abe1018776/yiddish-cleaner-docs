@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yiddish ASR Project - What Changed Across All Repos</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #232736;
+    --border: #2d3148;
+    --text: #e2e4eb;
+    --text-dim: #8b8fa3;
+    --accent: #7c6aef;
+    --accent-glow: rgba(124,106,239,.15);
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --pink: #f472b6;
+    --cyan: #22d3ee;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,-apple-system,sans-serif; line-height:1.7; }
+
+  /* Scroll progress */
+  .progress-bar { position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--accent),var(--pink)); z-index:1000; transition:width .1s; }
+
+  /* Nav */
+  nav { position:sticky; top:0; background:rgba(15,17,23,.92); backdrop-filter:blur(12px); border-bottom:1px solid var(--border); z-index:99; padding:.75rem 2rem; display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap; }
+  nav .logo { font-weight:700; font-size:1.1rem; color:var(--accent); white-space:nowrap; }
+  nav a { color:var(--text-dim); text-decoration:none; font-size:.85rem; transition:color .2s; }
+  nav a:hover { color:var(--text); }
+
+  /* Hero */
+  .hero { text-align:center; padding:4rem 2rem 3rem; background:linear-gradient(180deg,var(--accent-glow),transparent 70%); }
+  .hero h1 { font-size:2.4rem; font-weight:800; background:linear-gradient(135deg,var(--accent),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent; }
+  .hero p { color:var(--text-dim); max-width:700px; margin:.8rem auto 0; font-size:1.05rem; }
+  .hero .date { display:inline-block; margin-top:1rem; background:var(--surface2); padding:.35rem 1rem; border-radius:20px; font-size:.8rem; color:var(--text-dim); }
+
+  /* Container */
+  .container { max-width:1100px; margin:0 auto; padding:0 1.5rem 4rem; }
+
+  /* Section */
+  .section { margin-top:3rem; }
+  .section-label { display:inline-flex; align-items:center; gap:.5rem; font-size:.7rem; text-transform:uppercase; letter-spacing:.12em; color:var(--accent); font-weight:600; margin-bottom:.5rem; }
+  .section h2 { font-size:1.6rem; font-weight:700; margin-bottom:.3rem; }
+  .section .subtitle { color:var(--text-dim); font-size:.95rem; margin-bottom:1.5rem; }
+
+  /* Quick stats row */
+  .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin:2rem 0; }
+  .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.2rem; text-align:center; }
+  .stat-card .num { font-size:2rem; font-weight:800; }
+  .stat-card .label { font-size:.8rem; color:var(--text-dim); margin-top:.2rem; }
+  .stat-card.purple .num { color:var(--accent); }
+  .stat-card.green .num { color:var(--green); }
+  .stat-card.amber .num { color:var(--amber); }
+  .stat-card.blue .num { color:var(--blue); }
+  .stat-card.pink .num { color:var(--pink); }
+  .stat-card.cyan .num { color:var(--cyan); }
+
+  /* Repo header card */
+  .repo-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2rem; margin-bottom:2rem; }
+  .repo-card .repo-name { font-size:1.3rem; font-weight:700; display:flex; align-items:center; gap:.6rem; }
+  .repo-card .repo-name .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .repo-card .repo-desc { color:var(--text-dim); margin-top:.4rem; font-size:.95rem; }
+  .repo-card .tech-badges { display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.8rem; }
+  .badge { display:inline-block; padding:.2rem .6rem; border-radius:6px; font-size:.72rem; font-weight:600; background:var(--surface2); color:var(--text-dim); border:1px solid var(--border); }
+
+  /* Timeline */
+  .timeline { position:relative; padding-left:2rem; }
+  .timeline::before { content:''; position:absolute; left:7px; top:8px; bottom:8px; width:2px; background:var(--border); }
+  .t-item { position:relative; margin-bottom:1.5rem; }
+  .t-item::before { content:''; position:absolute; left:-2rem; top:10px; width:12px; height:12px; border-radius:50%; border:2px solid var(--accent); background:var(--bg); z-index:1; }
+  .t-item.green::before { border-color:var(--green); }
+  .t-item.amber::before { border-color:var(--amber); }
+  .t-item.blue::before { border-color:var(--blue); }
+  .t-item.pink::before { border-color:var(--pink); }
+  .t-item.red::before { border-color:var(--red); }
+  .t-date { font-size:.75rem; color:var(--text-dim); font-weight:600; }
+  .t-title { font-size:1rem; font-weight:600; margin:.15rem 0; }
+  .t-body { font-size:.9rem; color:var(--text-dim); line-height:1.65; }
+  .t-body ul { padding-left:1.2rem; margin-top:.3rem; }
+  .t-body li { margin-bottom:.25rem; }
+
+  /* Highlight boxes */
+  .highlight { background:var(--surface2); border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:.8rem 1rem; margin:.8rem 0; font-size:.88rem; }
+  .highlight.green { border-left-color:var(--green); }
+  .highlight.amber { border-left-color:var(--amber); }
+  .highlight.red { border-left-color:var(--red); }
+
+  /* Feature list */
+  .feature-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1rem; margin:1rem 0; }
+  .feature-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.2rem; }
+  .feature-card h4 { font-size:.95rem; margin-bottom:.3rem; display:flex; align-items:center; gap:.4rem; }
+  .feature-card p { font-size:.85rem; color:var(--text-dim); }
+
+  /* Divider */
+  .divider { border:none; border-top:1px solid var(--border); margin:3rem 0; }
+
+  /* TLDR box */
+  .tldr { background:linear-gradient(135deg,rgba(124,106,239,.08),rgba(244,114,182,.08)); border:1px solid var(--accent); border-radius:16px; padding:2rem; margin:2rem 0; }
+  .tldr h3 { color:var(--accent); font-size:1.1rem; margin-bottom:.6rem; }
+  .tldr p { font-size:.95rem; line-height:1.8; }
+
+  /* Footer */
+  footer { text-align:center; padding:2rem; color:var(--text-dim); font-size:.8rem; border-top:1px solid var(--border); }
+
+  @media(max-width:700px){
+    .hero h1 { font-size:1.6rem; }
+    nav { padding:.6rem 1rem; }
+    .container { padding:0 1rem 3rem; }
+    .repo-card { padding:1.2rem; }
+    .stats-row { grid-template-columns:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<nav>
+  <span class="logo">JEM Yiddish ASR</span>
+  <a href="#overview">Overview</a>
+  <a href="#cleaner">Yiddish Cleaner</a>
+  <a href="#mapping">Audio-Text Mapping</a>
+  <a href="#alignment">Audio Alignment</a>
+  <a href="#summary">Summary</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>What's Been Built & Changed</h1>
+  <p>A plain-English summary of everything that happened across the three Yiddish audio processing repositories &mdash; no tech jargon, just the facts.</p>
+  <span class="date">Report generated February 27, 2026</span>
+</div>
+
+<div class="container">
+
+<!-- TLDR -->
+<div class="tldr">
+  <h3>The Short Version</h3>
+  <p>
+    Three tools are being built to help preserve Yiddish audio recordings of the Lubavitcher Rebbe's teachings.
+    <strong>Yiddish Cleaner</strong> (the biggest project, 100+ changes) is a web app that tests how well computers can transcribe Yiddish speech &mdash; it cleans up text, compares computer transcriptions against human ones, and scores accuracy.
+    <strong>Audio-Text Mapping</strong> (brand new, built in one day) is a matching tool that pairs 4,669 audio recordings with their 1,065 written transcripts using smart suggestions.
+    <strong>Audio Alignment</strong> (major new feature) takes an audio file and its transcript, then figures out exactly which word is spoken at which second &mdash; like karaoke subtitles for Yiddish recordings.
+  </p>
+</div>
+
+<!-- QUICK STATS -->
+<div class="stats-row">
+  <div class="stat-card purple">
+    <div class="num">3</div>
+    <div class="label">Repositories</div>
+  </div>
+  <div class="stat-card green">
+    <div class="num">150+</div>
+    <div class="label">Total Changes (Commits)</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="num">20</div>
+    <div class="label">Pull Requests</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="num">19</div>
+    <div class="label">Branches Used</div>
+  </div>
+  <div class="stat-card pink">
+    <div class="num">~38</div>
+    <div class="label">Days of Development</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="num">4,669</div>
+    <div class="label">Audio Files Managed</div>
+  </div>
+</div>
+
+<!-- ========== REPO 1: YIDDISH CLEANER ========== -->
+<hr class="divider" id="cleaner">
+<div class="section">
+  <div class="section-label"><span style="color:var(--green);">&#9679;</span> Repository 1 of 3</div>
+
+  <div class="repo-card">
+    <div class="repo-name"><span class="dot" style="background:var(--green);"></span> Yiddish Cleaner (KolYid)</div>
+    <div class="repo-desc">A web application for testing and scoring how well different AI speech-to-text models handle Yiddish. Think of it as a "report card" system for Yiddish transcription software.</div>
+    <div class="tech-badges">
+      <span class="badge">Laravel + PHP</span>
+      <span class="badge">Vue.js</span>
+      <span class="badge">100+ commits</span>
+      <span class="badge">19 Pull Requests</span>
+      <span class="badge">16 Branches</span>
+      <span class="badge">Jan 19 &ndash; Feb 26</span>
+    </div>
+  </div>
+
+  <h2>What does this app do?</h2>
+  <p class="subtitle">In everyday terms, here's what this tool lets people do:</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>&#127908; Import Audio Recordings</h4>
+      <p>Upload Yiddish audio files one at a time or in bulk from a Google spreadsheet. The app keeps track of every recording and its status.</p>
+    </div>
+    <div class="feature-card">
+      <h4>&#128221; Manage "Ground Truth" Transcriptions</h4>
+      <p>Attach human-verified written transcripts to audio files. These serve as the "correct answer" to compare against computer-generated transcriptions.</p>
+    </div>
+    <div class="feature-card">
+      <h4>&#129529; Clean Up Text</h4>
+      <p>Automatically remove junk from transcripts (titles, editor notes, timestamps, brackets) using AI or rule-based cleaning. Comes with preset profiles for different eras of text formatting.</p>
+    </div>
+    <div class="feature-card">
+      <h4>&#128202; Benchmark ASR Models</h4>
+      <p>Run audio through different speech-to-text engines (Whisper, YiddishLabs, etc.) and compare their output against the correct transcript. Shows error rates and accuracy scores.</p>
+    </div>
+    <div class="feature-card">
+      <h4>&#128269; Word-by-Word Review</h4>
+      <p>Review every single word the computer transcribed &mdash; see its confidence score, mark errors as "critical," delete bad words, or add missing ones.</p>
+    </div>
+    <div class="feature-card">
+      <h4>&#127942; Gold Standard Benchmarks</h4>
+      <p>Flag the best, most carefully verified recordings as "gold standard" and show a special public leaderboard comparing how different AI models perform on them.</p>
+    </div>
+  </div>
+
+  <h2 style="margin-top:2rem;">Timeline of Changes</h2>
+  <p class="subtitle">Here's what was built, when, in plain language:</p>
+
+  <div class="timeline">
+
+    <div class="t-item green">
+      <div class="t-date">January 19, 2026</div>
+      <div class="t-title">Project Created from Scratch</div>
+      <div class="t-body">The app was born. On day one, the developer built out training version management, Hebrew content editing tools, document viewing with copy/download, and AI provider configuration. A ton of foundational work for a single day.</div>
+    </div>
+
+    <div class="t-item green">
+      <div class="t-date">January 20&ndash;22</div>
+      <div class="t-title">Core Features Built Rapidly</div>
+      <div class="t-body">
+        In three days, the heart of the app was built:
+        <ul>
+          <li>Audio sample pages for uploading, viewing, and managing recordings</li>
+          <li>Status tracking that shows where each sample is in the workflow (new &rarr; in progress &rarr; ready for review &rarr; done)</li>
+          <li>Benchmark comparison pages with model statistics</li>
+          <li>Bulk import from Google Sheets</li>
+          <li>Bulk delete and bulk cleaning</li>
+          <li>A dashboard with overall metrics</li>
+          <li>The app was rebranded to "KolYid"</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item blue">
+      <div class="t-date">January 25</div>
+      <div class="t-title">Added "Who Did What" Tracking</div>
+      <div class="t-body">Every action in the app now records which user did it. You can see who uploaded each audio file, who created each transcription, and when. Also added tools for comparing two versions of text side-by-side.</div>
+    </div>
+
+    <div class="t-item amber">
+      <div class="t-date">January 26</div>
+      <div class="t-title">Big Feature Day &mdash; Three Major Additions</div>
+      <div class="t-body">
+        Three significant features landed in a single day:
+        <ul>
+          <li><strong>Bulk Transcription:</strong> Select multiple audio files and send them all to an AI transcription service at once (built by GitHub's Copilot AI assistant)</li>
+          <li><strong>Selective Accuracy Scoring:</strong> Instead of scoring the entire transcript, you can now pick a specific range of words to score &mdash; useful when only part of a transcript is usable</li>
+          <li><strong>Word-Level Review Tool:</strong> A major new feature (+3,100 lines of code) that breaks transcripts into individual words, each with a confidence score, so reviewers can check every word</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item">
+      <div class="t-date">January 27&ndash;28</div>
+      <div class="t-title">Run AI Locally (No Cloud Needed)</div>
+      <div class="t-body">
+        <ul>
+          <li><strong>Local Whisper:</strong> Added the ability to run OpenAI's Whisper speech-to-text right on your own computer for free, without needing API keys or internet</li>
+          <li><strong>Forced Alignment:</strong> A new feature that takes an existing transcript and an audio file, then figures out the exact timing of every word &mdash; critical for creating training data</li>
+          <li>Fixed several bugs: CSRF security token issues, showing the right sections on the review page, and making local tools work without API keys</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item pink">
+      <div class="t-date">January 29</div>
+      <div class="t-title">Review Experience Overhaul</div>
+      <div class="t-body">
+        <ul>
+          <li>Segment-by-segment review (instead of the whole transcript at once)</li>
+          <li>"Critical Error" tracking &mdash; mark words as critically wrong and calculate a Critical Word Error Rate</li>
+          <li>Bulk word operations &mdash; select many words and delete, mark, or update them all at once</li>
+          <li>Built-in audio player right on the review page</li>
+          <li>Chunked alignment display showing text line by line alongside the audio</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item">
+      <div class="t-date">February 2</div>
+      <div class="t-title">Five Improvements in One Day</div>
+      <div class="t-body">
+        <ul>
+          <li><strong>Faster page loads:</strong> Pages now only refresh the data that changed instead of reloading everything</li>
+          <li><strong>Keyboard shortcut 'C':</strong> Press the C key to toggle a word's "critical error" flag while reviewing</li>
+          <li><strong>Auto-updating scores:</strong> When you edit the reference transcript, all accuracy scores automatically recalculate</li>
+          <li><strong>Gold Standard page:</strong> A new dedicated benchmark page showing only the highest-quality reference samples</li>
+          <li><strong>Ignore filler words:</strong> Words like "um," "uh," and "ah" no longer count against accuracy scores</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item blue">
+      <div class="t-date">February 6&ndash;9</div>
+      <div class="t-title">Complete User Interface Redesign</div>
+      <div class="t-body">
+        The entire look and feel of the app was overhauled:
+        <ul>
+          <li>Replaced dropdown menus with a new floating action bar</li>
+          <li>Added keyboard shortcuts for common actions: E = edit, I = insert, P = play audio, C = mark critical, D = delete, Esc = close</li>
+          <li>New reusable components for data tables, modals, and dropdown selectors</li>
+          <li>Smart pagination that knows which page you're on across different views</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item">
+      <div class="t-date">February 22&ndash;24</div>
+      <div class="t-title">Major Behind-the-Scenes Restructuring</div>
+      <div class="t-body">
+        <div class="highlight">This was the biggest architectural change since launch.</div>
+        The way audio files and transcripts relate to each other was completely redesigned. Previously, each transcript belonged to exactly one audio file. Now, one audio file can have many transcripts and one transcript can be linked to multiple audio files. This makes the import process much smarter:
+        <ul>
+          <li>If two rows in a spreadsheet share the same audio URL, the app creates one audio file with two linked transcripts instead of duplicates</li>
+          <li>Audio sample statuses were simplified from technical labels to plain task statuses: New, In Progress, Review, Done</li>
+          <li>19 automated tests were added to make sure the new system works correctly</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item green">
+      <div class="t-date">February 25&ndash;26</div>
+      <div class="t-title">Smoother Review Workflow (Latest)</div>
+      <div class="t-body">
+        <ul>
+          <li>Reviews now happen one segment at a time, automatically advancing to the next when you click "Mark Reviewed"</li>
+          <li>You can edit transcript text directly on the page</li>
+          <li>Progress tracking shows how far along you are in reviewing (e.g., "12 of 45 segments reviewed")</li>
+          <li>Removed dead code and replaced "coming soon" placeholders with working features</li>
+          <li>Fixed a bug where corrupted Google login tokens would crash the app</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="highlight amber" style="margin-top:1.5rem;">
+    <strong>Still Open:</strong> There's one unmerged security fix that adds protection against a type of database attack (SQL injection) on the benchmark page. Also, the restructuring of how audio and transcripts link together is only partially complete &mdash; more cleanup is planned.
+  </div>
+</div>
+
+<!-- ========== REPO 2: YIDDISH MAPPING ========== -->
+<hr class="divider" id="mapping">
+<div class="section">
+  <div class="section-label"><span style="color:var(--amber);">&#9679;</span> Repository 2 of 3</div>
+
+  <div class="repo-card">
+    <div class="repo-name"><span class="dot" style="background:var(--amber);"></span> Yiddish Audio-Text Mapping</div>
+    <div class="repo-desc">A web tool for matching thousands of Yiddish audio recordings to their written transcripts. Like a massive jigsaw puzzle solver &mdash; it suggests which audio goes with which document and lets humans verify the matches.</div>
+    <div class="tech-badges">
+      <span class="badge">Vanilla HTML/CSS/JS</span>
+      <span class="badge">Cloudflare Pages</span>
+      <span class="badge">4 commits</span>
+      <span class="badge">Built in 1 day</span>
+      <span class="badge">Live at mapping.kohnai.ai</span>
+    </div>
+  </div>
+
+  <h2>What does this app do?</h2>
+  <p class="subtitle">It solves a very specific problem: there are 4,669 audio recordings and 1,065 written transcripts, and someone needs to figure out which audio goes with which transcript.</p>
+
+  <div class="stats-row">
+    <div class="stat-card amber">
+      <div class="num">4,669</div>
+      <div class="label">Audio Recordings</div>
+    </div>
+    <div class="stat-card green">
+      <div class="num">1,065</div>
+      <div class="label">Written Transcripts</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="num">1,809</div>
+      <div class="label">Already Matched</div>
+    </div>
+    <div class="stat-card pink">
+      <div class="num">2,860</div>
+      <div class="label">Audio Still Unmatched</div>
+    </div>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4>&#129520; Smart Matching Suggestions</h4>
+      <p>The system automatically suggests which transcript matches which audio file based on dates, keywords, and content types. Each suggestion has a confidence score from 0% to 100%.</p>
+    </div>
+    <div class="feature-card">
+      <h4>&#128270; Two-Way Search</h4>
+      <p>Find a transcript for a given audio file, or find audio for a given transcript. A full-screen search modal lets you browse everything.</p>
+    </div>
+    <div class="feature-card">
+      <h4>&#128190; Save Progress Locally</h4>
+      <p>All matches you confirm are saved in your browser automatically. You can pick up where you left off even without logging in.</p>
+    </div>
+    <div class="feature-card">
+      <h4>&#128196; Export to Spreadsheet</h4>
+      <p>Download all your verified matches as a CSV file that opens in Excel or Google Sheets, complete with Google Drive links to the files.</p>
+    </div>
+  </div>
+
+  <h2 style="margin-top:2rem;">Timeline of Changes</h2>
+  <p class="subtitle">This entire project was built and deployed in a single day:</p>
+
+  <div class="timeline">
+    <div class="t-item green">
+      <div class="t-date">February 27, 2026 &mdash; 8:14 AM</div>
+      <div class="t-title">Complete App Created</div>
+      <div class="t-body">
+        The entire web application was built in a single HTML file (621 lines) with all the data in one big JSON file (~9 MB). Includes:
+        <ul>
+          <li>Dark-themed responsive design</li>
+          <li>Four tabs: "50-Hour Selection" (423 curated pairs), "All Matched," "Unmatched Audio," "Unmatched Transcripts"</li>
+          <li>Statistics dashboard with color-coded cards</li>
+          <li>Filtering by year, month, content type, and free-text search</li>
+          <li>Sortable, paginated tables (50 items per page)</li>
+          <li>Hebrew calendar support (months Tishrei through Elul)</li>
+          <li>Content type classification: Sicha, Maamar, Farbrengen</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item">
+      <div class="t-date">February 27 &mdash; 8:15 AM</div>
+      <div class="t-title">Documentation Added</div>
+      <div class="t-body">A README file was added explaining what the project does, how it's structured, and how to deploy it.</div>
+    </div>
+
+    <div class="t-item amber">
+      <div class="t-date">February 27 &mdash; 8:24 AM</div>
+      <div class="t-title">Hebrew Text Encoding Fixed</div>
+      <div class="t-body">
+        A critical data quality fix:
+        <ul>
+          <li>Hebrew quotation marks were showing as generic ASCII characters &mdash; fixed to use proper Hebrew geresh and gershayim symbols</li>
+          <li>Long transcript previews were trimmed to 15 words for readability</li>
+          <li>Invisible junk characters were removed from the data</li>
+          <li>A Python script was added so this cleanup can be re-run anytime the data updates</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item blue">
+      <div class="t-date">February 27 &mdash; 5:18 PM</div>
+      <div class="t-title">Architecture Documentation Page</div>
+      <div class="t-body">A comprehensive, interactive documentation page (1,724 lines) was added showing diagrams of the system architecture, data models, user journeys, the matching algorithm, and design decisions.</div>
+    </div>
+  </div>
+
+  <div class="highlight green">
+    <strong>Key insight:</strong> This is a zero-dependency project. The entire app is one HTML file, one data file, and one cleanup script. No build tools, no package manager, no framework &mdash; just vanilla HTML, CSS, and JavaScript deployed to Cloudflare's global network.
+  </div>
+</div>
+
+<!-- ========== REPO 3: YIDDISH AUDIO ALIGNMENT ========== -->
+<hr class="divider" id="alignment">
+<div class="section">
+  <div class="section-label"><span style="color:var(--pink);">&#9679;</span> Repository 3 of 3</div>
+
+  <div class="repo-card">
+    <div class="repo-name"><span class="dot" style="background:var(--pink);"></span> Yiddish Audio Alignment</div>
+    <div class="repo-desc">A system that takes a Yiddish audio recording and its written transcript, then figures out the exact moment every word is spoken. Think of it like generating karaoke-style subtitles for Yiddish recordings. It also includes the original transcript cleaning tool that started the whole project.</div>
+    <div class="tech-badges">
+      <span class="badge">Python / Flask</span>
+      <span class="badge">AI / Whisper</span>
+      <span class="badge">RunPod GPU</span>
+      <span class="badge">Cloudflare Pages</span>
+      <span class="badge">50 commits</span>
+      <span class="badge">2 Branches</span>
+      <span class="badge">Live at align.kohnai.ai</span>
+    </div>
+  </div>
+
+  <h2>Two Systems in One Repo</h2>
+  <p class="subtitle">This repository actually contains two related but distinct tools:</p>
+
+  <div class="feature-grid">
+    <div class="feature-card" style="border-color:var(--cyan);">
+      <h4 style="color:var(--cyan);">&#128196; Part 1: Transcript Cleaner (Original)</h4>
+      <p>The older part of the project. A web app that takes raw Yiddish documents and strips out everything that isn't actual spoken words &mdash; titles, editor notes, timestamps, bracketed annotations, Hebrew citations. Supports Google Drive, Google Sheets batch processing, and AI-powered cleaning.</p>
+    </div>
+    <div class="feature-card" style="border-color:var(--pink);">
+      <h4 style="color:var(--pink);">&#127925; Part 2: Audio-Text Alignment (New)</h4>
+      <p>The big new addition. Takes an audio file and its transcript, then produces word-level timestamps. Uses a special "confusion-aware" algorithm that detects when it's getting confused and intelligently skips ahead rather than producing garbage data. Runs on rented GPU servers.</p>
+    </div>
+  </div>
+
+  <h2 style="margin-top:2rem;">Timeline of Changes</h2>
+
+  <div class="timeline">
+
+    <div class="t-item green">
+      <div class="t-date">January 12, 2026</div>
+      <div class="t-title">Transcript Cleaner Created</div>
+      <div class="t-body">
+        The project began as a web app for cleaning Yiddish transcripts:
+        <ul>
+          <li>Upload a Word document (.doc or .docx) and get back a cleaned version with only the spoken content</li>
+          <li>Security fixes applied immediately (proper debug mode, updated dependencies)</li>
+          <li>Deployment setup with Docker and GitHub Actions</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item">
+      <div class="t-date">January 13</div>
+      <div class="t-title">Cleaning Profiles and Google Drive</div>
+      <div class="t-body">
+        <ul>
+          <li><strong>Cleaning profiles:</strong> Five different cleaning presets were added for different eras of Yiddish text formatting (transcripts from the 1950s need different cleanup than transcripts from the 1980s)</li>
+          <li><strong>Google Drive integration:</strong> Clean files directly from Google Drive folders with recursive processing (goes through subfolders too)</li>
+          <li><strong>Better-looking interface:</strong> Switched to a modern design with Tailwind CSS, replaced emoji indicators with proper icons, added copy buttons</li>
+          <li><strong>Modular plugin system:</strong> Each type of cleanup (brackets, titles, whitespace, Hebrew citations, etc.) was turned into its own plugin that can be enabled or disabled</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item">
+      <div class="t-date">January 14&ndash;17</div>
+      <div class="t-title">Bug Fixes and Scoring</div>
+      <div class="t-body">
+        <ul>
+          <li>Fixed a bug where text inside document textboxes was being incorrectly detected and removed</li>
+          <li>Added a "clean rate" scoring system (0-100) that measures how much content was removed &mdash; helps identify documents that might need manual review</li>
+          <li>Added Google Sheets integration for batch processing multiple documents</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item">
+      <div class="t-date">January 18&ndash;19</div>
+      <div class="t-title">AI-Powered Cleaning and Visual Diffs</div>
+      <div class="t-body">
+        <ul>
+          <li><strong>AI cleaning mode:</strong> Instead of just using rules, you can now send transcripts to an AI (supports OpenAI, Anthropic, Google, Groq, and more) to intelligently clean them</li>
+          <li><strong>Visual diff viewer:</strong> See exactly what was removed or changed, with removals highlighted in color</li>
+          <li><strong>Batch session tracking:</strong> Process entire Google Sheets of documents and track progress</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item pink" style="margin-top:2rem;">
+      <div class="t-date">February 20, 2026</div>
+      <div class="t-title">Audio-Text Alignment System Built (Major New Feature)</div>
+      <div class="t-body">
+        <div class="highlight" style="border-left-color:var(--pink);">This was the biggest addition to the project &mdash; an entirely new system built on a separate branch.</div>
+        In a single day, a complete audio-text alignment system was created:
+        <ul>
+          <li><strong>The Algorithm:</strong> A "confusion-aware" alignment system adapted from an Israeli speech project. It aligns audio to text word by word, and when it detects that the alignment quality is degrading (words getting jumbled), it intelligently backs up and tries again or skips ahead to a better section</li>
+          <li><strong>GPU Cloud Backend:</strong> Set up a server on RunPod (a GPU cloud service) that processes alignment requests using a Yiddish-specific AI model. The AI model is baked into the server image so it doesn't need to download it each time</li>
+          <li><strong>Cloudflare Proxy:</strong> A small server function on Cloudflare keeps the GPU server's API key secret while forwarding requests from the browser</li>
+          <li><strong>Web Interface:</strong> A user-friendly website at <em>align.kohnai.ai</em> where you can:
+            <ul>
+              <li>Upload audio and paste text to get word-level timestamps</li>
+              <li>Or upload audio only to get a full AI transcription</li>
+              <li>Watch words highlight in sync with audio playback (like karaoke)</li>
+              <li>See confidence-colored word chips (green = confident, red = uncertain)</li>
+              <li>Export results as JSON data</li>
+            </ul>
+          </li>
+          <li><strong>12 automated tests</strong> to make sure the algorithm works correctly</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="t-item blue">
+      <div class="t-date">February 27</div>
+      <div class="t-title">Documentation and Merge</div>
+      <div class="t-body">
+        <ul>
+          <li>An interactive architecture documentation page was added with visual diagrams explaining the system</li>
+          <li>The alignment feature branch was officially merged into the main project</li>
+          <li>After the merge, the documentation was rewritten on the feature branch to specifically cover the alignment system</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <h2 style="margin-top:2rem;">How the Alignment Works (Simplified)</h2>
+  <div class="highlight">
+    <strong>Step 1:</strong> You give it an audio file and a written transcript.<br>
+    <strong>Step 2:</strong> The AI listens to the audio in chunks, trying to match what it hears to the written words.<br>
+    <strong>Step 3:</strong> It gives each word a confidence score. When confidence drops (the "confusion zone"), it backs up and retries.<br>
+    <strong>Step 4:</strong> If retrying doesn't help, it skips the confusing section and picks up where it can align again.<br>
+    <strong>Step 5:</strong> The final result is every word tagged with its exact start and end time in the audio.
+  </div>
+</div>
+
+<!-- ========== SUMMARY ========== -->
+<hr class="divider" id="summary">
+<div class="section">
+  <h2>Putting It All Together</h2>
+  <p class="subtitle">How these three tools work as a system:</p>
+
+  <div style="background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:2rem; margin:1.5rem 0;">
+    <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+      <div style="display:flex; align-items:flex-start; gap:1rem;">
+        <div style="background:var(--surface2); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:800; color:var(--accent);">1</div>
+        <div>
+          <strong style="color:var(--amber);">Mapping Tool</strong> matches audio recordings to their written transcripts from a library of thousands of files. Humans verify the suggestions and export the pairs.
+        </div>
+      </div>
+
+      <div style="text-align:center; color:var(--text-dim); font-size:1.5rem;">&#8595;</div>
+
+      <div style="display:flex; align-items:flex-start; gap:1rem;">
+        <div style="background:var(--surface2); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:800; color:var(--accent);">2</div>
+        <div>
+          <strong style="color:var(--pink);">Audio Alignment</strong> takes those matched pairs and produces word-level timestamps &mdash; it knows exactly when each word is spoken in the audio.
+        </div>
+      </div>
+
+      <div style="text-align:center; color:var(--text-dim); font-size:1.5rem;">&#8595;</div>
+
+      <div style="display:flex; align-items:flex-start; gap:1rem;">
+        <div style="background:var(--surface2); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:800; color:var(--accent);">3</div>
+        <div>
+          <strong style="color:var(--cyan);">Transcript Cleaner</strong> (part of the alignment repo) strips editorial junk from the transcripts so only the actual spoken words remain.
+        </div>
+      </div>
+
+      <div style="text-align:center; color:var(--text-dim); font-size:1.5rem;">&#8595;</div>
+
+      <div style="display:flex; align-items:flex-start; gap:1rem;">
+        <div style="background:var(--surface2); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:800; color:var(--accent);">4</div>
+        <div>
+          <strong style="color:var(--green);">Yiddish Cleaner / KolYid</strong> uses the cleaned, aligned data to benchmark different AI transcription models, tracking which ones are most accurate at understanding Yiddish speech.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <h2 style="margin-top:2rem;">Key Numbers</h2>
+  <div class="stats-row">
+    <div class="stat-card purple">
+      <div class="num">150+</div>
+      <div class="label">Total Code Changes</div>
+    </div>
+    <div class="stat-card green">
+      <div class="num">20</div>
+      <div class="label">Pull Requests</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="num">5</div>
+      <div class="label">ASR Engines Supported</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="num">6</div>
+      <div class="label">AI Providers for Cleaning</div>
+    </div>
+    <div class="stat-card pink">
+      <div class="num">2</div>
+      <div class="label">Live Websites Deployed</div>
+    </div>
+    <div class="stat-card cyan">
+      <div class="num">38</div>
+      <div class="label">Days Since Project Start</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top:2rem;">What's Still in Progress</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h4 style="color:var(--red);">&#128274; Security Fix Pending</h4>
+      <p>A fix to prevent a database attack on the Yiddish Cleaner benchmark page has been written but not yet applied.</p>
+    </div>
+    <div class="feature-card">
+      <h4 style="color:var(--amber);">&#128736; Architecture Cleanup</h4>
+      <p>The Yiddish Cleaner is mid-way through a restructuring of how audio and transcripts link together. Phases 1-2 are done; more work remains.</p>
+    </div>
+    <div class="feature-card">
+      <h4 style="color:var(--blue);">&#128269; Review Tool Polish</h4>
+      <p>The word-by-word review tool works but has more planned improvements for audio playback integration and training data export.</p>
+    </div>
+    <div class="feature-card">
+      <h4 style="color:var(--green);">&#128200; 2,860 Unmatched Audio Files</h4>
+      <p>The mapping tool has paired many recordings, but thousands of audio files still need matching transcripts found.</p>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+<footer>
+  Generated on February 27, 2026 &bull; Covers all branches across 3 repositories &bull; yiddish-cleaner, yiddish-mapping, yiddish-audio-alignment
+</footer>
+
+<script>
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+  document.getElementById('progressBar').style.width = pct + '%';
+});
+</script>
+
+</body>
+</html>
