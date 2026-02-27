@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JEM ASR Platform - Complete User Journey</title>
+<style>
+/* ═══════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES - DARK THEME (DEFAULT)
+   ═══════════════════════════════════════════════ */
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #10101a;
+  --bg-card: #16162a;
+  --bg-card-hover: #1e1e38;
+  --bg-surface: #12121e;
+  --accent-blue: #00d4ff;
+  --accent-green: #00ff88;
+  --accent-magenta: #ff006e;
+  --accent-yellow: #ffcc00;
+  --accent-orange: #ff8c00;
+  --accent-purple: #b366ff;
+  --text-primary: #e8e8f0;
+  --text-secondary: #8888aa;
+  --text-muted: #555577;
+  --border: #2a2a44;
+  --border-glow: rgba(0,212,255,0.3);
+  --shadow: rgba(0,0,0,0.4);
+  --status-built: #00ff88;
+  --status-dev: #00d4ff;
+  --status-next: #ff8c00;
+  --status-future: #666688;
+  --connector: #2a2a44;
+  --phase1: #00d4ff;
+  --phase2: #00ff88;
+  --phase3: #ff006e;
+  --phase4: #b366ff;
+  --phase5: #ffcc00;
+  --overlay: rgba(0,0,0,0.7);
+}
+
+/* ═══ LIGHT THEME ═══ */
+[data-theme="light"] {
+  --bg-primary: #f5f5fa;
+  --bg-secondary: #eeeef4;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f0f8;
+  --bg-surface: #e8e8f0;
+  --text-primary: #1a1a2e;
+  --text-secondary: #555577;
+  --text-muted: #8888aa;
+  --border: #d0d0e0;
+  --border-glow: rgba(0,120,200,0.3);
+  --shadow: rgba(0,0,0,0.1);
+  --connector: #c0c0d8;
+  --overlay: rgba(255,255,255,0.85);
+  --accent-blue: #0090cc;
+  --accent-green: #00a858;
+  --accent-magenta: #cc005a;
+  --accent-orange: #cc7000;
+  --accent-purple: #8844cc;
+  --accent-yellow: #aa8800;
+  --status-built: #00a858;
+  --status-dev: #0090cc;
+  --status-next: #cc7000;
+  --status-future: #888899;
+  --phase1: #0090cc;
+  --phase2: #00a858;
+  --phase3: #cc005a;
+  --phase4: #8844cc;
+  --phase5: #aa8800;
+}
+
+/* ═══ RESET & BASE ═══ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--bg-primary);color:var(--text-primary);
+  line-height:1.6;overflow-x:hidden;
+  transition:background .3s,color .3s;
+}
+
+/* ═══ SCROLLBAR ═══ */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg-secondary)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+
+/* ═══ NAVIGATION ═══ */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  background:var(--bg-primary);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px);
+  transition:background .3s,border .3s;
+}
+.nav-inner{
+  max-width:1440px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 1.5rem;height:56px;
+}
+.nav-brand{
+  font-weight:800;font-size:1rem;
+  background:linear-gradient(135deg,var(--accent-blue),var(--accent-magenta));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;white-space:nowrap;
+}
+.nav-links{
+  display:flex;gap:0.25rem;list-style:none;overflow-x:auto;
+  scrollbar-width:none;flex:1;justify-content:center;
+}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{
+  display:block;padding:0.6rem 0.75rem;
+  color:var(--text-secondary);text-decoration:none;
+  font-size:0.78rem;font-weight:500;white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition:all .2s;
+}
+.nav-links a:hover,.nav-links a.active{
+  color:var(--accent-blue);border-bottom-color:var(--accent-blue);
+}
+.nav-controls{display:flex;align-items:center;gap:0.75rem}
+
+/* Theme Toggle */
+.theme-toggle{
+  width:40px;height:22px;border-radius:11px;
+  background:var(--border);border:none;cursor:pointer;
+  position:relative;transition:background .3s;
+}
+.theme-toggle::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--accent-blue);transition:transform .3s;
+}
+[data-theme="light"] .theme-toggle::after{transform:translateX(18px)}
+
+/* ═══ HERO SECTION ═══ */
+.hero{
+  padding:7rem 2rem 3rem;text-align:center;
+  background:radial-gradient(ellipse at 50% 0%,rgba(0,212,255,0.06) 0%,transparent 70%);
+}
+.hero h1{
+  font-size:clamp(2rem,5vw,3.2rem);font-weight:800;
+  background:linear-gradient(135deg,var(--accent-blue),var(--accent-magenta));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:0.75rem;
+}
+.hero-sub{
+  font-size:1.05rem;color:var(--text-secondary);
+  max-width:640px;margin:0 auto 1.5rem;
+}
+
+/* Legend */
+.legend{
+  display:flex;gap:1.25rem;justify-content:center;flex-wrap:wrap;
+  margin-bottom:1.5rem;
+}
+.legend-item{
+  display:flex;align-items:center;gap:0.4rem;
+  font-size:0.78rem;font-weight:600;
+}
+.legend-dot{
+  width:10px;height:10px;border-radius:50%;
+}
+.dot-built{background:var(--status-built)}
+.dot-dev{background:var(--status-dev)}
+.dot-next{background:var(--status-next)}
+.dot-future{background:var(--status-future)}
+
+/* Stats bar */
+.stats-bar{
+  display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;
+  margin-top:1rem;
+}
+.stat-item{text-align:center}
+.stat-num{
+  font-size:1.8rem;font-weight:800;
+  font-family:'JetBrains Mono','Fira Code',monospace;
+}
+.stat-label{font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+
+/* ═══ SECTIONS ═══ */
+.section{
+  max-width:1440px;margin:0 auto;padding:3rem 1.5rem;
+}
+.section-header{
+  text-align:center;margin-bottom:2.5rem;
+}
+.section-header h2{
+  font-size:1.7rem;font-weight:700;margin-bottom:0.4rem;
+}
+.section-header .num{
+  color:var(--accent-blue);
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.8rem;margin-right:0.4rem;
+}
+.section-header p{
+  color:var(--text-secondary);font-size:0.9rem;
+}
+
+/* ═══ JOURNEY TIMELINE ═══ */
+.timeline{
+  position:relative;padding:2rem 0;
+}
+.timeline::before{
+  content:'';position:absolute;left:50%;top:0;bottom:0;
+  width:3px;background:linear-gradient(
+    to bottom,
+    var(--phase1),var(--phase2),var(--phase3),var(--phase4),var(--phase5)
+  );
+  transform:translateX(-50%);border-radius:2px;
+}
+.tl-phase{
+  position:relative;margin-bottom:3rem;
+}
+.tl-marker{
+  position:absolute;left:50%;transform:translateX(-50%);
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:1rem;z-index:10;
+  border:3px solid;cursor:pointer;
+  transition:transform .3s,box-shadow .3s;
+}
+.tl-marker:hover{
+  transform:translateX(-50%) scale(1.15);
+}
+.tl-content{
+  width:44%;padding:1.5rem;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:14px;
+  transition:all .3s;cursor:pointer;
+  position:relative;
+}
+.tl-content:hover{
+  border-color:var(--border-glow);
+  box-shadow:0 4px 30px var(--shadow);
+  transform:translateY(-2px);
+}
+.tl-content h3{
+  font-size:1.1rem;font-weight:700;margin-bottom:0.3rem;
+  display:flex;align-items:center;gap:0.5rem;
+}
+.tl-content .phase-tag{
+  font-size:0.65rem;font-weight:700;
+  padding:0.15rem 0.5rem;border-radius:100px;
+  text-transform:uppercase;letter-spacing:.05em;
+}
+.tl-content p{
+  font-size:0.83rem;color:var(--text-secondary);margin-bottom:0.75rem;
+}
+.tl-left .tl-content{margin-right:auto}
+.tl-right .tl-content{margin-left:auto}
+
+/* Feature chips inside timeline */
+.feature-list{
+  display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.75rem;
+}
+.feat{
+  padding:0.25rem 0.6rem;border-radius:6px;
+  font-size:0.7rem;font-weight:600;
+  border:1px solid;
+}
+.feat-built{color:var(--status-built);border-color:rgba(0,255,136,0.25);background:rgba(0,255,136,0.06)}
+.feat-dev{color:var(--status-dev);border-color:rgba(0,212,255,0.25);background:rgba(0,212,255,0.06)}
+.feat-next{color:var(--status-next);border-color:rgba(255,140,0,0.25);background:rgba(255,140,0,0.06)}
+.feat-future{color:var(--status-future);border-color:rgba(102,102,136,0.25);background:rgba(102,102,136,0.06)}
+
+/* Expandable detail */
+.tl-detail{
+  max-height:0;overflow:hidden;
+  transition:max-height .4s ease;
+}
+.tl-content.expanded .tl-detail{
+  max-height:1200px;
+}
+.tl-expand-hint{
+  font-size:0.7rem;color:var(--text-muted);
+  margin-top:0.5rem;
+}
+.tl-content.expanded .tl-expand-hint .hint-text{display:none}
+.tl-content.expanded .tl-expand-hint::after{content:'Click to collapse'}
+
+/* Detail inner */
+.detail-section{
+  margin-top:1rem;padding-top:0.75rem;
+  border-top:1px solid var(--border);
+}
+.detail-section h4{
+  font-size:0.82rem;font-weight:700;margin-bottom:0.5rem;
+  color:var(--text-primary);
+}
+.detail-section ul{
+  list-style:none;padding:0;
+}
+.detail-section li{
+  font-size:0.78rem;color:var(--text-secondary);
+  padding:0.3rem 0;padding-left:1.2rem;
+  position:relative;
+}
+.detail-section li::before{
+  content:'';position:absolute;left:0;top:0.65rem;
+  width:6px;height:6px;border-radius:50%;
+}
+.detail-section li.s-built::before{background:var(--status-built)}
+.detail-section li.s-dev::before{background:var(--status-dev)}
+.detail-section li.s-next::before{background:var(--status-next)}
+.detail-section li.s-future::before{background:var(--status-future)}
+
+/* ═══ RESPONSIVE TIMELINE ═══ */
+@media(max-width:900px){
+  .timeline::before{left:24px}
+  .tl-marker{left:24px !important}
+  .tl-content{width:calc(100% - 70px);margin-left:auto !important;margin-right:0 !important}
+}
+
+/* ═══ PIPELINES SECTION ═══ */
+.pipelines-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1.5rem;
+}
+@media(max-width:900px){.pipelines-grid{grid-template-columns:1fr}}
+.pipeline-track{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:14px;padding:1.5rem;
+  position:relative;overflow:hidden;
+}
+.pipeline-track::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+}
+.pipe-bench::before{background:var(--accent-magenta)}
+.pipe-train::before{background:var(--accent-green)}
+.pipe-publish::before{background:var(--accent-purple)}
+
+.pipeline-track h3{
+  font-size:1rem;font-weight:700;margin-bottom:0.75rem;
+  display:flex;align-items:center;gap:0.5rem;
+}
+.pipe-stages{display:flex;flex-direction:column;gap:0}
+.pipe-stage{
+  display:flex;align-items:center;gap:0.75rem;
+  padding:0.6rem 0.75rem;
+  border-radius:8px;font-size:0.78rem;
+  transition:background .2s;
+}
+.pipe-stage:hover{background:var(--bg-card-hover)}
+.pipe-stage .stage-num{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:0.7rem;flex-shrink:0;
+}
+.pipe-stage .stage-label{font-weight:500;flex:1}
+.pipe-stage .stage-status{
+  font-size:0.65rem;font-weight:700;
+  padding:0.15rem 0.45rem;border-radius:4px;
+}
+.pipe-connector{
+  width:2px;height:16px;margin-left:1.5rem;
+  background:var(--connector);
+}
+
+/* ═══ CORE VIEWS SHOWCASE ═══ */
+.views-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);
+  gap:1.5rem;
+}
+@media(max-width:768px){.views-grid{grid-template-columns:1fr}}
+.view-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;
+  transition:all .3s;
+}
+.view-card:hover{
+  border-color:var(--border-glow);
+  box-shadow:0 4px 30px var(--shadow);
+  transform:translateY(-2px);
+}
+.view-preview{
+  height:220px;position:relative;overflow:hidden;
+  border-bottom:1px solid var(--border);
+}
+.view-info{padding:1.25rem}
+.view-info h3{font-size:1rem;font-weight:700;margin-bottom:0.3rem}
+.view-info p{font-size:0.82rem;color:var(--text-secondary)}
+
+/* Mock UI previews */
+.mock-ui{
+  width:100%;height:100%;padding:0.75rem;
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.65rem;
+  display:flex;flex-direction:column;gap:0.5rem;
+}
+.mock-toolbar{
+  display:flex;gap:0.4rem;padding:0.4rem;
+  background:var(--bg-surface);border-radius:6px;
+}
+.mock-btn{
+  padding:0.2rem 0.5rem;border-radius:4px;
+  background:var(--bg-card-hover);color:var(--text-secondary);
+  border:1px solid var(--border);font-size:0.6rem;
+}
+.mock-row{
+  display:flex;gap:0.5rem;padding:0.35rem 0.5rem;
+  background:var(--bg-surface);border-radius:4px;
+  align-items:center;
+}
+.mock-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}
+.mock-text{
+  flex:1;height:6px;border-radius:3px;background:var(--border);
+}
+.mock-text-short{width:40%}
+.mock-badge-sm{
+  padding:0.1rem 0.3rem;border-radius:3px;
+  font-size:0.55rem;font-weight:700;
+}
+
+/* Diff viewer mock */
+.mock-diff{display:flex;gap:0.5rem;flex:1;overflow:hidden}
+.mock-diff-pane{
+  flex:1;background:var(--bg-surface);border-radius:6px;
+  padding:0.5rem;display:flex;flex-direction:column;gap:0.2rem;
+  overflow:hidden;
+}
+.mock-diff-pane .pane-title{
+  font-size:0.6rem;font-weight:700;color:var(--text-muted);
+  margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.03em;
+}
+.mock-line{
+  height:5px;border-radius:2px;background:var(--border);
+}
+.mock-line.del{background:rgba(255,0,110,0.25);border-left:2px solid var(--accent-magenta)}
+.mock-line.add{background:rgba(0,255,136,0.2);border-left:2px solid var(--accent-green)}
+
+/* Karaoke mock */
+.mock-karaoke{flex:1;display:flex;flex-direction:column;gap:0.5rem}
+.mock-waveform{
+  height:40px;background:var(--bg-surface);border-radius:6px;
+  position:relative;overflow:hidden;
+}
+.mock-waveform::after{
+  content:'';position:absolute;left:35%;top:0;bottom:0;
+  width:2px;background:var(--accent-magenta);
+}
+.mock-words{
+  display:flex;flex-wrap:wrap;gap:0.3rem;padding:0.5rem;
+  background:var(--bg-surface);border-radius:6px;flex:1;
+  align-content:flex-start;
+}
+.mock-word{
+  padding:0.15rem 0.4rem;border-radius:3px;
+  font-size:0.6rem;background:var(--bg-card-hover);
+  color:var(--text-secondary);
+}
+.mock-word.active{
+  background:rgba(0,212,255,0.2);
+  color:var(--accent-blue);
+  border:1px solid rgba(0,212,255,0.3);
+}
+.mock-word.low{
+  background:rgba(255,140,0,0.15);
+  color:var(--accent-orange);
+  border:1px solid rgba(255,140,0,0.3);
+}
+.mock-word.done{
+  background:rgba(0,255,136,0.1);
+  color:var(--status-built);
+}
+
+/* Mapping mock */
+.mock-mapping{flex:1;display:flex;gap:0.5rem}
+.mock-col{
+  flex:1;background:var(--bg-surface);border-radius:6px;
+  padding:0.5rem;display:flex;flex-direction:column;gap:0.3rem;
+}
+.mock-col-title{
+  font-size:0.6rem;font-weight:700;color:var(--text-muted);
+  margin-bottom:0.2rem;text-transform:uppercase;
+}
+.mock-file{
+  padding:0.3rem 0.4rem;border-radius:4px;
+  background:var(--bg-card-hover);border:1px solid var(--border);
+  display:flex;align-items:center;gap:0.3rem;
+}
+.mock-connect{
+  width:20px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:0.3rem;
+  color:var(--text-muted);font-size:0.7rem;
+}
+
+/* Review mock */
+.mock-review{flex:1;display:flex;flex-direction:column;gap:0.5rem}
+.mock-conf-bar{
+  display:flex;align-items:center;gap:0.3rem;
+}
+.mock-conf-fill{
+  flex:1;height:6px;border-radius:3px;background:var(--bg-surface);
+  overflow:hidden;position:relative;
+}
+.mock-conf-fill::after{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  border-radius:3px;
+}
+
+/* ═══ CHECKLIST ═══ */
+.checklist{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+  gap:1rem;
+}
+.check-group{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:12px;padding:1.25rem;
+}
+.check-group h3{
+  font-size:0.9rem;font-weight:700;margin-bottom:0.75rem;
+  display:flex;align-items:center;gap:0.5rem;
+}
+.check-item{
+  display:flex;align-items:flex-start;gap:0.6rem;
+  padding:0.4rem 0;font-size:0.8rem;
+}
+.check-icon{
+  width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;font-size:0.65rem;font-weight:800;
+  margin-top:1px;
+}
+.ci-done{background:rgba(0,255,136,0.15);color:var(--status-built);border:1px solid rgba(0,255,136,0.3)}
+.ci-dev{background:rgba(0,212,255,0.15);color:var(--status-dev);border:1px solid rgba(0,212,255,0.3)}
+.ci-next{background:rgba(255,140,0,0.15);color:var(--status-next);border:1px solid rgba(255,140,0,0.3)}
+.ci-future{background:rgba(102,102,136,0.15);color:var(--status-future);border:1px solid rgba(102,102,136,0.3)}
+.check-text{color:var(--text-secondary);line-height:1.4}
+.check-text strong{color:var(--text-primary);font-weight:600}
+.priority-badge{
+  display:inline-block;font-size:0.6rem;font-weight:700;
+  padding:0.1rem 0.35rem;border-radius:3px;
+  margin-left:0.3rem;vertical-align:middle;
+}
+.p-high{background:rgba(255,0,110,0.15);color:var(--accent-magenta);border:1px solid rgba(255,0,110,0.3)}
+.p-med{background:rgba(255,204,0,0.15);color:var(--accent-yellow);border:1px solid rgba(255,204,0,0.3)}
+.p-low{background:rgba(102,102,136,0.15);color:var(--status-future);border:1px solid rgba(102,102,136,0.3)}
+
+/* ═══ COMPARISON TABLE ═══ */
+.compare-table{
+  width:100%;border-collapse:separate;border-spacing:0;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;
+}
+.compare-table th,.compare-table td{
+  padding:0.75rem 1.25rem;text-align:left;
+  border-bottom:1px solid var(--border);
+}
+.compare-table th{
+  font-size:0.7rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--text-muted);
+  background:var(--bg-surface);
+}
+.compare-table td{font-size:0.82rem;color:var(--text-secondary)}
+.compare-table td:first-child{
+  font-weight:600;color:var(--text-primary);
+  white-space:nowrap;
+}
+.compare-table tr:last-child td{border-bottom:none}
+.compare-table .col-now{color:var(--status-built)}
+.compare-table .col-future{color:var(--accent-blue)}
+
+/* ═══ PRIORITIES ═══ */
+.priority-list{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:0.75rem;
+}
+.priority-card{
+  display:flex;align-items:flex-start;gap:0.75rem;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:10px;padding:1rem;
+  transition:all .2s;
+}
+.priority-card:hover{
+  border-color:var(--border-glow);
+  transform:translateY(-1px);
+}
+.priority-num{
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:0.85rem;flex-shrink:0;
+}
+.priority-card h4{font-size:0.88rem;font-weight:600;margin-bottom:0.2rem}
+.priority-card p{font-size:0.75rem;color:var(--text-secondary)}
+
+/* ═══ UX PRINCIPLES ═══ */
+.ux-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:1.25rem;
+}
+.ux-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:12px;padding:1.5rem;text-align:center;
+  transition:all .3s;
+}
+.ux-card:hover{
+  border-color:var(--border-glow);
+  transform:translateY(-3px);
+  box-shadow:0 8px 30px var(--shadow);
+}
+.ux-icon{
+  font-size:2rem;margin-bottom:0.75rem;
+  display:block;
+}
+.ux-card h3{font-size:0.95rem;font-weight:700;margin-bottom:0.4rem}
+.ux-card p{font-size:0.8rem;color:var(--text-secondary)}
+
+/* ═══ FOOTER ═══ */
+.footer{
+  text-align:center;padding:3rem 1.5rem;
+  border-top:1px solid var(--border);
+  color:var(--text-muted);font-size:0.78rem;
+}
+.footer a{color:var(--accent-blue);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+
+/* ═══ ANIMATIONS ═══ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.animate-in{animation:fadeUp .5s ease forwards;opacity:0}
+.delay-1{animation-delay:.1s}.delay-2{animation-delay:.2s}
+.delay-3{animation-delay:.3s}.delay-4{animation-delay:.4s}
+
+/* ═══ PHASE COLORS ═══ */
+.c1{color:var(--phase1)}.c2{color:var(--phase2)}.c3{color:var(--phase3)}
+.c4{color:var(--phase4)}.c5{color:var(--phase5)}
+.bg1{background:var(--phase1)}.bg2{background:var(--phase2)}
+.bg3{background:var(--phase3)}.bg4{background:var(--phase4)}.bg5{background:var(--phase5)}
+.b1{border-color:var(--phase1)}.b2{border-color:var(--phase2)}
+.b3{border-color:var(--phase3)}.b4{border-color:var(--phase4)}.b5{border-color:var(--phase5)}
+
+/* Marker BGs */
+.tl-marker.m1{background:rgba(0,212,255,0.12);color:var(--phase1);border-color:var(--phase1)}
+.tl-marker.m2{background:rgba(0,255,136,0.12);color:var(--phase2);border-color:var(--phase2)}
+.tl-marker.m3{background:rgba(255,0,110,0.12);color:var(--phase3);border-color:var(--phase3)}
+.tl-marker.m4{background:rgba(179,102,255,0.12);color:var(--phase4);border-color:var(--phase4)}
+.tl-marker.m5{background:rgba(255,204,0,0.12);color:var(--phase5);border-color:var(--phase5)}
+
+.tag1{background:rgba(0,212,255,0.12);color:var(--phase1)}
+.tag2{background:rgba(0,255,136,0.12);color:var(--phase2)}
+.tag3{background:rgba(255,0,110,0.12);color:var(--phase3)}
+.tag4{background:rgba(179,102,255,0.12);color:var(--phase4)}
+.tag5{background:rgba(255,204,0,0.12);color:var(--phase5)}
+
+/* Pipe stage nums */
+.sn-mag{background:rgba(255,0,110,0.15);color:var(--accent-magenta);border:1px solid rgba(255,0,110,0.3)}
+.sn-grn{background:rgba(0,255,136,0.15);color:var(--status-built);border:1px solid rgba(0,255,136,0.3)}
+.sn-pur{background:rgba(179,102,255,0.15);color:var(--accent-purple);border:1px solid rgba(179,102,255,0.3)}
+.ss-done{background:rgba(0,255,136,0.1);color:var(--status-built)}
+.ss-dev{background:rgba(0,212,255,0.1);color:var(--status-dev)}
+.ss-next{background:rgba(255,140,0,0.1);color:var(--status-next)}
+.ss-future{background:rgba(102,102,136,0.1);color:var(--status-future)}
+
+/* priority num colors */
+.pn-crit{background:rgba(255,0,110,0.15);color:var(--accent-magenta);border:1px solid rgba(255,0,110,0.3)}
+.pn-high{background:rgba(255,140,0,0.15);color:var(--accent-orange);border:1px solid rgba(255,140,0,0.3)}
+.pn-med{background:rgba(255,204,0,0.15);color:var(--accent-yellow);border:1px solid rgba(255,204,0,0.3)}
+</style>
+</head>
+<body>
+
+<!-- ═══ NAVIGATION ═══ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-brand">JEM ASR Platform</div>
+    <ul class="nav-links">
+      <li><a href="#journey" class="active">Journey</a></li>
+      <li><a href="#pipelines">Pipelines</a></li>
+      <li><a href="#views">Core Views</a></li>
+      <li><a href="#checklist">Checklist</a></li>
+      <li><a href="#priorities">Priorities</a></li>
+      <li><a href="#compare">Current vs Future</a></li>
+      <li><a href="#ux">UX Principles</a></li>
+    </ul>
+    <div class="nav-controls">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme"></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<header class="hero" id="top">
+  <h1>JEM ASR User Journey</h1>
+  <p class="hero-sub">A complete visual map of every feature the platform has and will have &mdash; from audio-transcript mapping through benchmarking, training, and publishing.</p>
+  <div class="legend">
+    <span class="legend-item"><span class="legend-dot dot-built"></span> Built / Available</span>
+    <span class="legend-item"><span class="legend-dot dot-dev"></span> In Development</span>
+    <span class="legend-item"><span class="legend-dot dot-next"></span> Planned Next</span>
+    <span class="legend-item"><span class="legend-dot dot-future"></span> Future</span>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-item"><div class="stat-num c1">4,669</div><div class="stat-label">Audio Files</div></div>
+    <div class="stat-item"><div class="stat-num c2">1,065</div><div class="stat-label">Transcripts</div></div>
+    <div class="stat-item"><div class="stat-num c4">1,809</div><div class="stat-label">Matched Pairs</div></div>
+    <div class="stat-item"><div class="stat-num c5">50 hrs</div><div class="stat-label">Training Target</div></div>
+    <div class="stat-item"><div class="stat-num c3">5</div><div class="stat-label">Benchmark Files</div></div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     SECTION 1: THE USER JOURNEY TIMELINE
+     ═══════════════════════════════════════ -->
+<section class="section" id="journey">
+  <div class="section-header">
+    <h2><span class="num">01</span> The Complete User Journey</h2>
+    <p>Five phases from raw audio to published, fine-tuned Yiddish ASR. Click each phase to expand details.</p>
+  </div>
+
+  <div class="timeline">
+
+    <!-- ── PHASE 1: MAPPING ── -->
+    <div class="tl-phase tl-left">
+      <div class="tl-marker m1" style="top:20px">1</div>
+      <div class="tl-content" onclick="this.classList.toggle('expanded')" style="margin-right:auto;width:44%">
+        <h3><span class="c1">Phase 1</span> <span class="phase-tag tag1">MAPPING</span></h3>
+        <p>Audio files and manual transcripts exist separately. Every transcript must be affiliated to an audio file. The mapping interface provides smart suggestions, search, and manual linking.</p>
+        <div class="feature-list">
+          <span class="feat feat-built">Mapping Interface</span>
+          <span class="feat feat-built">Smart Suggestions</span>
+          <span class="feat feat-built">First 15 Words Preview</span>
+          <span class="feat feat-built">Hebrew Date Parsing</span>
+          <span class="feat feat-built">CSV Export</span>
+          <span class="feat feat-next">Fix Audio Length</span>
+          <span class="feat feat-next">Auto-Update Suggestions</span>
+          <span class="feat feat-next">Edit ALL Mappings</span>
+          <span class="feat feat-next">Many-to-Many Splits</span>
+          <span class="feat feat-next">Singing Detection</span>
+          <span class="feat feat-next">Silence Detection</span>
+        </div>
+        <div class="tl-expand-hint"><span class="hint-text" style="cursor:pointer">Click to expand details</span></div>
+        <div class="tl-detail">
+          <div class="detail-section">
+            <h4>Mapping Interface</h4>
+            <ul>
+              <li class="s-built">Unassigned transcripts column with algorithmic suggestions (date + keyword scoring)</li>
+              <li class="s-built">Confidence scores displayed (0.0-1.0); green for scores above 0.5</li>
+              <li class="s-built">Full-screen search modal across transcripts or audio (up to 100 results)</li>
+              <li class="s-built">Six statistics cards: total audio, matched, unmatched, transcripts</li>
+              <li class="s-built">Four tab navigation: 50-Hour Selection, All Matched, Unmatched Audio, Unmatched Transcripts</li>
+              <li class="s-built">Filter by Year, Month, Content Type; free-text search</li>
+            </ul>
+          </div>
+          <div class="detail-section">
+            <h4>Mapping Table View</h4>
+            <ul>
+              <li class="s-built">All audio displayed with Hebrew year/date (5711-5752)</li>
+              <li class="s-built">Sortable columns with localeCompare for Hebrew text</li>
+              <li class="s-next">Transcript count per audio (clickable to expand)</li>
+              <li class="s-next">Pipeline status indicators per audio</li>
+              <li class="s-next">Editable linking for ALL mappings</li>
+            </ul>
+          </div>
+          <div class="detail-section">
+            <h4>Needed Improvements</h4>
+            <ul>
+              <li class="s-next">Fix audio length display (currently inaccurate)</li>
+              <li class="s-next">Auto-update mapping suggestions on new data</li>
+              <li class="s-next">Many-to-many relationships (split transcript across audio / split audio across transcripts)</li>
+              <li class="s-next">Range selection for partial audio segments</li>
+              <li class="s-next">Singing detection (flag non-speech audio segments)</li>
+              <li class="s-next">Silence detection (flag dead air)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PHASE 2: TRAINING PREP ── -->
+    <div class="tl-phase tl-right">
+      <div class="tl-marker m2" style="top:20px">2</div>
+      <div class="tl-content" onclick="this.classList.toggle('expanded')" style="margin-left:auto;width:44%">
+        <h3><span class="c2">Phase 2</span> <span class="phase-tag tag2">TRAINING PREP</span></h3>
+        <p>50 hours selected with even distribution across years, months, and lecture types (Sicha/Maamar). Audio passes through a cleaning and review pipeline before training.</p>
+        <div class="feature-list">
+          <span class="feat feat-built">50-Hour Selection</span>
+          <span class="feat feat-built">Script Cleaning (99%)</span>
+          <span class="feat feat-built">8 Cleaning Processors</span>
+          <span class="feat feat-built">LLM Cleaning Alt</span>
+          <span class="feat feat-dev">Diff Viewer</span>
+          <span class="feat feat-dev">Karaoke Mode</span>
+          <span class="feat feat-next">JEM Review Interface</span>
+          <span class="feat feat-next">Confidence Scoring</span>
+          <span class="feat feat-next">Bulk Approve</span>
+          <span class="feat feat-next">Inline Editing</span>
+        </div>
+        <div class="tl-expand-hint"><span class="hint-text">Click to expand details</span></div>
+        <div class="tl-detail">
+          <div class="detail-section">
+            <h4>Pipeline Stages</h4>
+            <ul>
+              <li class="s-built">Needs Cleaning: raw transcripts with editorial content</li>
+              <li class="s-built">Cleaned / Waiting Review: 8 processors remove non-spoken content</li>
+              <li class="s-next">Approved for Training: JEM reviewer signs off</li>
+              <li class="s-next">Sent for Training: locked, dispatched to fine-tuning pipeline</li>
+            </ul>
+          </div>
+          <div class="detail-section">
+            <h4>Automated Cleaning (Built)</h4>
+            <ul>
+              <li class="s-built">SpecialChars: zero-width characters, smart quotes</li>
+              <li class="s-built">SeifMarker: Hebrew section markers</li>
+              <li class="s-built">TitleStyle: heading detection</li>
+              <li class="s-built">Brackets: editorial annotations [...]</li>
+              <li class="s-built">EditorialHebrew: non-spoken scripture references</li>
+              <li class="s-built">Parentheses: editorial notes (...)</li>
+              <li class="s-built">ForceRemove: pattern matching removal</li>
+              <li class="s-built">Whitespace: normalization</li>
+              <li class="s-built">Cleaning presets: minimal, titles_only, full_clean, with_editorial, heavy</li>
+              <li class="s-built">LLM alternative: 5 AI providers with Yiddish-specific prompt</li>
+            </ul>
+          </div>
+          <div class="detail-section">
+            <h4>JEM Review Interface (Needed)</h4>
+            <ul>
+              <li class="s-dev">Diff Viewer: side-by-side old vs cleaned text</li>
+              <li class="s-dev">Karaoke Mode: word-level timestamps with audio playback</li>
+              <li class="s-next">Confidence Scoring via stable-ts integration</li>
+              <li class="s-next">Click low-confidence word to jump to problem in audio</li>
+              <li class="s-next">Bulk select/deselect changes</li>
+              <li class="s-next">Inline editing of individual words</li>
+              <li class="s-next">Approve-all button with confirmation</li>
+            </ul>
+          </div>
+          <div class="detail-section">
+            <h4>Critical Rule</h4>
+            <ul>
+              <li class="s-next">Training CANNOT use benchmark audio (enforced system-wide)</li>
+              <li class="s-next">Pipeline stage indicators visible in mapping table</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PHASE 3: BENCHMARKING ── -->
+    <div class="tl-phase tl-left">
+      <div class="tl-marker m3" style="top:20px">3</div>
+      <div class="tl-content" onclick="this.classList.toggle('expanded')" style="margin-right:auto;width:44%">
+        <h3><span class="c3">Phase 3</span> <span class="phase-tag tag3">BENCHMARKING</span></h3>
+        <p>Developer-only view. 5 gold standard files (expanding to 7) used to measure ASR model accuracy. JEM never sees benchmark internals.</p>
+        <div class="feature-list">
+          <span class="feat feat-built">5 Gold Standard Files</span>
+          <span class="feat feat-built">WER/CER Calculation</span>
+          <span class="feat feat-built">Hebrew Normalization</span>
+          <span class="feat feat-built">Public Leaderboard</span>
+          <span class="feat feat-next">Expand to 7 Files</span>
+          <span class="feat feat-next">Benchmark Lock Rule</span>
+          <span class="feat feat-built">Model Comparison</span>
+        </div>
+        <div class="tl-expand-hint"><span class="hint-text">Click to expand details</span></div>
+        <div class="tl-detail">
+          <div class="detail-section">
+            <h4>Benchmark Features</h4>
+            <ul>
+              <li class="s-built">5 gold standard audio files with verified reference transcripts</li>
+              <li class="s-built">WER/CER with Hebrew-aware normalization (strips nikkud, punctuation)</li>
+              <li class="s-built">Word-level alignment review: mark substitutions as critical vs acceptable</li>
+              <li class="s-built">Public leaderboard ranking models by average WER</li>
+              <li class="s-built">Model detail pages with WER distribution histograms</li>
+              <li class="s-built">Side-by-side model comparison on shared audio</li>
+              <li class="s-built">Gold Standard curated subset view</li>
+            </ul>
+          </div>
+          <div class="detail-section">
+            <h4>Access & Enforcement</h4>
+            <ul>
+              <li class="s-built">Developer-only access: JEM does NOT see benchmark stages</li>
+              <li class="s-next">Benchmark audio marked in mapping table with visual indicator</li>
+              <li class="s-next">System-enforced rule: benchmark files cannot enter training pipeline</li>
+              <li class="s-next">Add 2 more benchmark files (5 to 7)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PHASE 4: VERSIONS & COMPARISON ── -->
+    <div class="tl-phase tl-right">
+      <div class="tl-marker m4" style="top:20px">4</div>
+      <div class="tl-content" onclick="this.classList.toggle('expanded')" style="margin-left:auto;width:44%">
+        <h3><span class="c4">Phase 4</span> <span class="phase-tag tag4">VERSIONS</span></h3>
+        <p>Multiple transcript versions per audio: Manual, Whisper, Gemini, future fine-tuned models. Each with WER, version ID, and source audio link.</p>
+        <div class="feature-list">
+          <span class="feat feat-built">Manual Transcripts</span>
+          <span class="feat feat-built">Whisper ASR</span>
+          <span class="feat feat-built">WER Comparison</span>
+          <span class="feat feat-dev">Gemini ASR</span>
+          <span class="feat feat-dev">Version Diff View</span>
+          <span class="feat feat-future">Fine-tuned Models</span>
+          <span class="feat feat-future">Version History</span>
+        </div>
+        <div class="tl-expand-hint"><span class="hint-text">Click to expand details</span></div>
+        <div class="tl-detail">
+          <div class="detail-section">
+            <h4>Transcript Sources</h4>
+            <ul>
+              <li class="s-built">Manual transcripts (human-written reference)</li>
+              <li class="s-built">Whisper ASR (OpenAI, YiddishLabs variants)</li>
+              <li class="s-dev">Gemini ASR integration</li>
+              <li class="s-future">Fine-tuned model outputs (post-training)</li>
+            </ul>
+          </div>
+          <div class="detail-section">
+            <h4>Comparison Tools</h4>
+            <ul>
+              <li class="s-built">WER/CER per version with Hebrew normalization</li>
+              <li class="s-built">Word-level alignment and error marking</li>
+              <li class="s-dev">Diff Viewer: side-by-side version comparison</li>
+              <li class="s-dev">Karaoke Mode with version switching</li>
+              <li class="s-future">Version ID tracking and source audio linking</li>
+              <li class="s-future">Historical version timeline</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PHASE 5: POST-TRAINING TESTING ── -->
+    <div class="tl-phase tl-left">
+      <div class="tl-marker m5" style="top:20px">5</div>
+      <div class="tl-content" onclick="this.classList.toggle('expanded')" style="margin-right:auto;width:44%">
+        <h3><span class="c5">Phase 5</span> <span class="phase-tag tag5">POST-TRAINING</span></h3>
+        <p>Test fine-tuned models against the benchmark set. Separate review and publish flow from the training flow. Karaoke mode with confidence scores for final validation.</p>
+        <div class="feature-list">
+          <span class="feat feat-future">Benchmark Testing</span>
+          <span class="feat feat-future">Karaoke + Confidence</span>
+          <span class="feat feat-future">Publish Review Flow</span>
+          <span class="feat feat-future">Model A/B Testing</span>
+          <span class="feat feat-future">Production Deploy</span>
+        </div>
+        <div class="tl-expand-hint"><span class="hint-text">Click to expand details</span></div>
+        <div class="tl-detail">
+          <div class="detail-section">
+            <h4>Post-Training Pipeline</h4>
+            <ul>
+              <li class="s-future">Run fine-tuned model on benchmark audio set</li>
+              <li class="s-future">Karaoke mode playback with confidence scores</li>
+              <li class="s-future">Compare fine-tuned vs baseline WER</li>
+              <li class="s-future">A/B testing framework for model variants</li>
+            </ul>
+          </div>
+          <div class="detail-section">
+            <h4>Publish Flow (Separate from Training)</h4>
+            <ul>
+              <li class="s-future">Dedicated review interface for publication-ready transcripts</li>
+              <li class="s-future">Approval workflow independent of training pipeline</li>
+              <li class="s-future">Version selection for production deployment</li>
+              <li class="s-future">Public-facing transcript delivery</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 2: THREE PIPELINES
+     ═══════════════════════════════════════ -->
+<section class="section" id="pipelines">
+  <div class="section-header">
+    <h2><span class="num">02</span> Three Parallel Pipelines</h2>
+    <p>Each audio file enters exactly ONE pipeline. The three tracks run in parallel with enforced separation rules.</p>
+  </div>
+
+  <div class="pipelines-grid">
+
+    <!-- Benchmark Pipeline -->
+    <div class="pipeline-track pipe-bench">
+      <h3><span class="c3">&#9670;</span> Benchmark Prep Flow</h3>
+      <div class="pipe-stages">
+        <div class="pipe-stage"><span class="stage-num sn-mag">1</span><span class="stage-label">Select Gold Standard Audio</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-mag">2</span><span class="stage-label">Verify Reference Transcripts</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-mag">3</span><span class="stage-label">Run ASR Models</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-mag">4</span><span class="stage-label">Calculate WER/CER</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-mag">5</span><span class="stage-label">Word-Level Review</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-mag">6</span><span class="stage-label">Publish to Leaderboard</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-mag">7</span><span class="stage-label">Expand to 7 Files</span><span class="stage-status ss-next">NEXT</span></div>
+      </div>
+    </div>
+
+    <!-- Training Pipeline -->
+    <div class="pipeline-track pipe-train">
+      <h3><span class="c2">&#9670;</span> Training Flow</h3>
+      <div class="pipe-stages">
+        <div class="pipe-stage"><span class="stage-num sn-grn">1</span><span class="stage-label">Map Audio to Transcript</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-grn">2</span><span class="stage-label">Select 50-Hour Subset</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-grn">3</span><span class="stage-label">Automated Script Cleaning</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-grn">4</span><span class="stage-label">JEM Review (Diff + Karaoke)</span><span class="stage-status ss-dev">DEV</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-grn">5</span><span class="stage-label">Approve for Training</span><span class="stage-status ss-next">NEXT</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-grn">6</span><span class="stage-label">Send to Fine-Tuning</span><span class="stage-status ss-next">NEXT</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-grn">7</span><span class="stage-label">Validate on Benchmarks</span><span class="stage-status ss-future">FUTURE</span></div>
+      </div>
+    </div>
+
+    <!-- Publishing Pipeline -->
+    <div class="pipeline-track pipe-publish">
+      <h3><span class="c4">&#9670;</span> Publishing Review Flow</h3>
+      <div class="pipe-stages">
+        <div class="pipe-stage"><span class="stage-num sn-pur">1</span><span class="stage-label">Generate ASR Transcript</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-pur">2</span><span class="stage-label">Compare Versions (WER)</span><span class="stage-status ss-done">DONE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-pur">3</span><span class="stage-label">Select Best Version</span><span class="stage-status ss-future">FUTURE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-pur">4</span><span class="stage-label">Editorial Review</span><span class="stage-status ss-future">FUTURE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-pur">5</span><span class="stage-label">Approve for Publication</span><span class="stage-status ss-future">FUTURE</span></div>
+        <div class="pipe-connector"></div>
+        <div class="pipe-stage"><span class="stage-num sn-pur">6</span><span class="stage-label">Publish Transcript</span><span class="stage-status ss-future">FUTURE</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 3: CORE VIEWS SHOWCASE
+     ═══════════════════════════════════════ -->
+<section class="section" id="views">
+  <div class="section-header">
+    <h2><span class="num">03</span> Core Interface Views</h2>
+    <p>The four primary views that JEM users interact with. Each is designed for minimal cognitive load and intuitive workflows.</p>
+  </div>
+
+  <div class="views-grid">
+
+    <!-- Mapping View -->
+    <div class="view-card">
+      <div class="view-preview" style="background:var(--bg-secondary)">
+        <div class="mock-ui">
+          <div class="mock-toolbar">
+            <span class="mock-btn">50-Hour</span>
+            <span class="mock-btn">All Matched</span>
+            <span class="mock-btn" style="color:var(--accent-orange)">Unmatched</span>
+            <span class="mock-btn">Transcripts</span>
+          </div>
+          <div class="mock-mapping">
+            <div class="mock-col">
+              <div class="mock-col-title">Audio Files</div>
+              <div class="mock-file"><span class="mock-dot" style="background:var(--status-built)"></span><span class="mock-text"></span></div>
+              <div class="mock-file"><span class="mock-dot" style="background:var(--status-built)"></span><span class="mock-text"></span></div>
+              <div class="mock-file"><span class="mock-dot" style="background:var(--accent-orange)"></span><span class="mock-text mock-text-short"></span></div>
+              <div class="mock-file"><span class="mock-dot" style="background:var(--accent-orange)"></span><span class="mock-text"></span></div>
+              <div class="mock-file"><span class="mock-dot" style="background:var(--accent-magenta)"></span><span class="mock-text mock-text-short"></span></div>
+            </div>
+            <div class="mock-connect">
+              <span>&#8594;</span><span>&#8594;</span><span style="color:var(--accent-orange)">?</span><span style="color:var(--accent-orange)">?</span><span style="color:var(--accent-magenta)">&#9670;</span>
+            </div>
+            <div class="mock-col">
+              <div class="mock-col-title">Transcripts</div>
+              <div class="mock-file"><span class="mock-dot" style="background:var(--status-built)"></span><span class="mock-text"></span></div>
+              <div class="mock-file"><span class="mock-dot" style="background:var(--status-built)"></span><span class="mock-text mock-text-short"></span></div>
+              <div class="mock-file" style="border-color:var(--accent-orange)"><span class="mock-dot" style="background:var(--accent-yellow)"></span><span class="mock-text"></span><span class="mock-badge-sm" style="background:rgba(255,204,0,0.15);color:var(--accent-yellow)">0.72</span></div>
+              <div class="mock-file" style="opacity:0.5"><span class="mock-dot" style="background:var(--text-muted)"></span><span class="mock-text mock-text-short"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="view-info">
+        <h3 class="c1">Mapping View</h3>
+        <p>Associate audio files with their corresponding transcripts. Smart suggestions with confidence scoring, search modals, Hebrew date filtering, and CSV export. Shows first 15 words for identification.</p>
+      </div>
+    </div>
+
+    <!-- Diff Viewer -->
+    <div class="view-card">
+      <div class="view-preview" style="background:var(--bg-secondary)">
+        <div class="mock-ui">
+          <div class="mock-toolbar">
+            <span class="mock-btn" style="color:var(--accent-blue)">Side-by-Side</span>
+            <span class="mock-btn">Unified</span>
+            <span class="mock-btn">Stats</span>
+          </div>
+          <div class="mock-diff">
+            <div class="mock-diff-pane">
+              <div class="pane-title">Original</div>
+              <div class="mock-line" style="width:90%"></div>
+              <div class="mock-line del" style="width:75%"></div>
+              <div class="mock-line" style="width:85%"></div>
+              <div class="mock-line del" style="width:60%"></div>
+              <div class="mock-line" style="width:95%"></div>
+              <div class="mock-line" style="width:70%"></div>
+              <div class="mock-line del" style="width:50%"></div>
+              <div class="mock-line" style="width:80%"></div>
+              <div class="mock-line" style="width:65%"></div>
+            </div>
+            <div class="mock-diff-pane">
+              <div class="pane-title">Cleaned</div>
+              <div class="mock-line" style="width:90%"></div>
+              <div class="mock-line add" style="width:80%"></div>
+              <div class="mock-line" style="width:85%"></div>
+              <div class="mock-line" style="width:95%"></div>
+              <div class="mock-line" style="width:70%"></div>
+              <div class="mock-line" style="width:80%"></div>
+              <div class="mock-line" style="width:65%"></div>
+              <div class="mock-line" style="width:55%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="view-info">
+        <h3 class="c2">Diff Viewer</h3>
+        <p>Side-by-side comparison of original vs cleaned transcripts. Highlights removed editorial content, brackets, Hebrew citations. Used in both training review and version comparison workflows.</p>
+      </div>
+    </div>
+
+    <!-- Karaoke Mode -->
+    <div class="view-card">
+      <div class="view-preview" style="background:var(--bg-secondary)">
+        <div class="mock-ui">
+          <div class="mock-toolbar">
+            <span class="mock-btn" style="color:var(--accent-magenta)">&#9654; Play</span>
+            <span class="mock-btn">0.75x</span>
+            <span class="mock-btn">1x</span>
+            <span class="mock-btn">1.5x</span>
+            <span class="mock-btn" style="color:var(--accent-orange)">Low Conf Only</span>
+          </div>
+          <div class="mock-karaoke">
+            <div class="mock-waveform"></div>
+            <div class="mock-words">
+              <span class="mock-word done">&#1493;&#1497;&#1491;&#1506;&#1512;</span>
+              <span class="mock-word done">&#1488;&#1497;&#1494;</span>
+              <span class="mock-word done">&#1491;&#1488;&#1505;</span>
+              <span class="mock-word active">&#1493;&#1488;&#1505;</span>
+              <span class="mock-word">&#1502;&#1506;&#1503;</span>
+              <span class="mock-word low">&#1494;&#1488;&#1490;&#1496;</span>
+              <span class="mock-word">&#1488;&#1497;&#1503;</span>
+              <span class="mock-word">&#1491;&#1506;&#1512;</span>
+              <span class="mock-word low">&#1513;&#1497;&#1495;&#1492;</span>
+              <span class="mock-word">&#1488;&#1494;</span>
+              <span class="mock-word">&#1502;&#1497;&#1496;</span>
+              <span class="mock-word">&#1491;&#1506;&#1501;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="view-info">
+        <h3 class="c3">Karaoke Mode</h3>
+        <p>Word-level timestamps synchronized with audio playback. Words highlight as they are spoken. Confidence scoring from stable-ts colors low-confidence words in orange. Click any word to jump to that audio position.</p>
+      </div>
+    </div>
+
+    <!-- Review Interface -->
+    <div class="view-card">
+      <div class="view-preview" style="background:var(--bg-secondary)">
+        <div class="mock-ui">
+          <div class="mock-toolbar">
+            <span class="mock-btn" style="color:var(--status-built)">Approve All</span>
+            <span class="mock-btn">Bulk Select</span>
+            <span class="mock-btn">Inline Edit</span>
+            <span class="mock-btn" style="color:var(--accent-magenta)">Reject</span>
+          </div>
+          <div class="mock-review">
+            <div class="mock-conf-bar">
+              <span style="font-size:0.6rem;color:var(--text-muted);width:60px">Confidence</span>
+              <div class="mock-conf-fill"><div style="position:absolute;left:0;top:0;bottom:0;width:87%;background:var(--status-built);border-radius:3px"></div></div>
+              <span style="font-size:0.65rem;color:var(--status-built);font-weight:700;width:35px;text-align:right">87%</span>
+            </div>
+            <div class="mock-conf-bar">
+              <span style="font-size:0.6rem;color:var(--text-muted);width:60px">Clean Rate</span>
+              <div class="mock-conf-fill"><div style="position:absolute;left:0;top:0;bottom:0;width:94%;background:var(--accent-blue);border-radius:3px"></div></div>
+              <span style="font-size:0.65rem;color:var(--accent-blue);font-weight:700;width:35px;text-align:right">94%</span>
+            </div>
+            <div style="display:flex;gap:0.5rem;flex:1">
+              <div style="flex:1;background:var(--bg-surface);border-radius:6px;padding:0.5rem">
+                <div style="font-size:0.6rem;color:var(--text-muted);margin-bottom:0.3rem">CHANGES TO REVIEW</div>
+                <div class="mock-row" style="border-left:2px solid var(--accent-magenta)"><span class="mock-text" style="width:70%"></span><span class="mock-badge-sm" style="background:rgba(255,0,110,0.15);color:var(--accent-magenta)">removed</span></div>
+                <div class="mock-row" style="border-left:2px solid var(--status-built);margin-top:0.2rem"><span class="mock-text" style="width:55%"></span><span class="mock-badge-sm ss-done">kept</span></div>
+                <div class="mock-row" style="border-left:2px solid var(--accent-orange);margin-top:0.2rem"><span class="mock-text" style="width:80%"></span><span class="mock-badge-sm ss-next">edited</span></div>
+                <div class="mock-row" style="border-left:2px solid var(--accent-magenta);margin-top:0.2rem"><span class="mock-text" style="width:45%"></span><span class="mock-badge-sm" style="background:rgba(255,0,110,0.15);color:var(--accent-magenta)">removed</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="view-info">
+        <h3 class="c5">Review Interface</h3>
+        <p>JEM reviewers see confidence scores, clean rates, and individual changes. Supports bulk approve, inline editing, and selective accept/reject. Integrates Diff Viewer and Karaoke Mode side by side.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 4: FEATURE CHECKLIST
+     ═══════════════════════════════════════ -->
+<section class="section" id="checklist">
+  <div class="section-header">
+    <h2><span class="num">04</span> Feature Checklist</h2>
+    <p>Complete inventory of every feature &mdash; what exists, what is being built, and what is planned.</p>
+  </div>
+
+  <div class="checklist">
+
+    <div class="check-group">
+      <h3><span class="c1">&#9632;</span> Mapping & Association</h3>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Mapping Interface</strong> &mdash; associate audio to transcripts</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Smart Suggestions</strong> &mdash; date + keyword confidence scoring</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>First 15 Words</strong> &mdash; transcript identification preview</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Search Modal</strong> &mdash; full-screen search across all files</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Hebrew Date Parsing</strong> &mdash; 5711-5752 calendar support</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>CSV Export</strong> &mdash; audio + transcript mappings with Drive links</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Filter & Sort</strong> &mdash; year, month, content type, free-text</span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Fix Audio Length</strong> &mdash; display correction <span class="priority-badge p-high">P1</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Auto-Update Suggestions</strong> &mdash; refresh on new data <span class="priority-badge p-high">P1</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Edit ALL Mappings</strong> &mdash; not just unmatched <span class="priority-badge p-high">P1</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Many-to-Many Splits</strong> &mdash; split transcript/audio <span class="priority-badge p-med">P2</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Singing Detection</strong> &mdash; flag non-speech segments <span class="priority-badge p-med">P2</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Silence Detection</strong> &mdash; flag dead air <span class="priority-badge p-med">P2</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Range Selection</strong> &mdash; partial audio segments</span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Pipeline Status Indicators</strong> &mdash; in mapping table <span class="priority-badge p-high">P2</span></span></div>
+    </div>
+
+    <div class="check-group">
+      <h3><span class="c2">&#9632;</span> Training Preparation</h3>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>50-Hour Selection</strong> &mdash; 423 curated pairs</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>8 Cleaning Processors</strong> &mdash; sequential text cleaning</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Cleaning Presets</strong> &mdash; minimal to heavy modes</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>LLM Cleaning</strong> &mdash; 5 AI providers with Yiddish prompt</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Clean Rate Scoring</strong> &mdash; 0-100 quality metrics</span></div>
+      <div class="check-item"><span class="check-icon ci-dev">~</span><span class="check-text"><strong>Diff Viewer</strong> &mdash; old vs cleaned comparison <span class="priority-badge p-high">P1</span></span></div>
+      <div class="check-item"><span class="check-icon ci-dev">~</span><span class="check-text"><strong>Karaoke Mode</strong> &mdash; word-level timestamps <span class="priority-badge p-high">P1</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>JEM Review Interface</strong> &mdash; diff + karaoke + confidence <span class="priority-badge p-high">P1</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Confidence Scoring</strong> &mdash; stable-ts integration</span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Bulk Approve</strong> &mdash; approve-all with confirmation <span class="priority-badge p-high">P1</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Inline Editing</strong> &mdash; edit individual words <span class="priority-badge p-high">P1</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Benchmark != Training Rule</strong> &mdash; enforced <span class="priority-badge p-high">P1</span></span></div>
+    </div>
+
+    <div class="check-group">
+      <h3><span class="c3">&#9632;</span> Benchmarking</h3>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>5 Gold Standard Files</strong> &mdash; verified references</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>WER/CER Calculation</strong> &mdash; Levenshtein with Hebrew normalization</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Word-Level Review</strong> &mdash; mark critical vs acceptable errors</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Public Leaderboard</strong> &mdash; model rankings by WER</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Model Comparison</strong> &mdash; side-by-side on shared audio</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>WER Histograms</strong> &mdash; per-model distribution</span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Expand to 7 Files</strong> &mdash; add 2 more benchmark files <span class="priority-badge p-high">P2</span></span></div>
+      <div class="check-item"><span class="check-icon ci-next">!</span><span class="check-text"><strong>Benchmark Lock</strong> &mdash; mark in mapping table, enforce rule</span></div>
+    </div>
+
+    <div class="check-group">
+      <h3><span class="c4">&#9632;</span> Versions & Comparison</h3>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Manual Transcripts</strong> &mdash; human-written references</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Whisper ASR</strong> &mdash; OpenAI + YiddishLabs</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>WER Per Version</strong> &mdash; normalized comparison</span></div>
+      <div class="check-item"><span class="check-icon ci-dev">~</span><span class="check-text"><strong>Gemini ASR</strong> &mdash; integration in progress</span></div>
+      <div class="check-item"><span class="check-icon ci-dev">~</span><span class="check-text"><strong>Version Diff View</strong> &mdash; compare any two versions</span></div>
+      <div class="check-item"><span class="check-icon ci-future">&#8212;</span><span class="check-text"><strong>Fine-Tuned Outputs</strong> &mdash; post-training model results</span></div>
+      <div class="check-item"><span class="check-icon ci-future">&#8212;</span><span class="check-text"><strong>Version History</strong> &mdash; timeline of all versions</span></div>
+    </div>
+
+    <div class="check-group">
+      <h3><span class="c5">&#9632;</span> Post-Training & Publishing</h3>
+      <div class="check-item"><span class="check-icon ci-future">&#8212;</span><span class="check-text"><strong>Fine-Tuned Benchmark Test</strong> &mdash; run on gold standard</span></div>
+      <div class="check-item"><span class="check-icon ci-future">&#8212;</span><span class="check-text"><strong>Karaoke + Confidence</strong> &mdash; for fine-tuned outputs</span></div>
+      <div class="check-item"><span class="check-icon ci-future">&#8212;</span><span class="check-text"><strong>A/B Testing</strong> &mdash; compare model variants</span></div>
+      <div class="check-item"><span class="check-icon ci-future">&#8212;</span><span class="check-text"><strong>Publish Review Flow</strong> &mdash; separate from training</span></div>
+      <div class="check-item"><span class="check-icon ci-future">&#8212;</span><span class="check-text"><strong>Version Selection</strong> &mdash; pick best for production</span></div>
+      <div class="check-item"><span class="check-icon ci-future">&#8212;</span><span class="check-text"><strong>Public Transcript Delivery</strong> &mdash; consumer-facing output</span></div>
+    </div>
+
+    <div class="check-group">
+      <h3><span style="color:var(--accent-blue)">&#9632;</span> Infrastructure</h3>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Laravel 12 Backend</strong> &mdash; queue, WebSocket, media library</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Vue 3 + Inertia</strong> &mdash; server-driven SPA</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Real-Time Updates</strong> &mdash; Laravel Reverb WebSocket</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Background Jobs</strong> &mdash; clean, transcribe, align, calculate</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Static Mapping App</strong> &mdash; Cloudflare Pages, zero deps</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Google OAuth</strong> &mdash; Sheets/Drive integration</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>RTL Support</strong> &mdash; Yiddish/Hebrew text orientation</span></div>
+      <div class="check-item"><span class="check-icon ci-done">&#10003;</span><span class="check-text"><strong>Test Suite</strong> &mdash; 25+ Pest tests with Hebrew validation</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 5: IMMEDIATE PRIORITIES
+     ═══════════════════════════════════════ -->
+<section class="section" id="priorities">
+  <div class="section-header">
+    <h2><span class="num">05</span> Immediate Priorities</h2>
+    <p>The top 10 items that need to be addressed next, ranked by urgency and impact.</p>
+  </div>
+
+  <div class="priority-list">
+    <div class="priority-card">
+      <div class="priority-num pn-crit">1</div>
+      <div><h4>Fix Audio Length Display</h4><p>Audio duration shown incorrectly in mapping interface. Quick fix with high visibility impact.</p></div>
+    </div>
+    <div class="priority-card">
+      <div class="priority-num pn-crit">2</div>
+      <div><h4>Auto-Update Mapping Suggestions</h4><p>Suggestions should refresh automatically when new data is added instead of requiring redeployment.</p></div>
+    </div>
+    <div class="priority-card">
+      <div class="priority-num pn-crit">3</div>
+      <div><h4>Enable Editing ALL Mappings</h4><p>Currently only unmatched items can be edited. Need to allow re-linking of already-matched pairs.</p></div>
+    </div>
+    <div class="priority-card">
+      <div class="priority-num pn-high">4</div>
+      <div><h4>Singing / Silence Detection</h4><p>Automatically flag audio segments containing singing (non-speech) or silence (dead air) to avoid training on bad data.</p></div>
+    </div>
+    <div class="priority-card">
+      <div class="priority-num pn-high">5</div>
+      <div><h4>Many-to-Many Splits</h4><p>Support splitting a transcript across multiple audio files, and vice versa. Essential for lectures split across tapes.</p></div>
+    </div>
+    <div class="priority-card">
+      <div class="priority-num pn-high">6</div>
+      <div><h4>Add 2 More Benchmark Files</h4><p>Expand gold standard from 5 to 7 files for more robust model evaluation across diverse content.</p></div>
+    </div>
+    <div class="priority-card">
+      <div class="priority-num pn-crit">7</div>
+      <div><h4>Build JEM Review Interface</h4><p>Combine Diff Viewer + Karaoke Mode + Confidence Scoring into a single review screen for JEM staff.</p></div>
+    </div>
+    <div class="priority-card">
+      <div class="priority-num pn-high">8</div>
+      <div><h4>Bulk Approve / Inline Edit</h4><p>Allow reviewers to approve all changes at once or edit individual words inline without leaving the review screen.</p></div>
+    </div>
+    <div class="priority-card">
+      <div class="priority-num pn-high">9</div>
+      <div><h4>Pipeline Stage Indicators</h4><p>Show visual status (Needs Cleaning / Reviewed / Approved / Sent) for each audio file in the mapping table.</p></div>
+    </div>
+    <div class="priority-card">
+      <div class="priority-num pn-crit">10</div>
+      <div><h4>Enforce Benchmark != Training</h4><p>System-level rule preventing benchmark audio from being used in the training pipeline. Critical for evaluation integrity.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 6: CURRENT vs FUTURE
+     ═══════════════════════════════════════ -->
+<section class="section" id="compare">
+  <div class="section-header">
+    <h2><span class="num">06</span> Current vs Future State</h2>
+    <p>A clear comparison of where the platform is today versus the target state across every major capability.</p>
+  </div>
+
+  <div style="overflow-x:auto">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th class="col-now">Current State</th>
+          <th class="col-future">Target State</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Audio-Transcript Mapping</td>
+          <td>Static JSON with manual localStorage saves; 1,809 matched pairs</td>
+          <td>Dynamic database-backed mapping with many-to-many splits, auto-refresh, and editable all pairs</td>
+        </tr>
+        <tr>
+          <td>Audio Analysis</td>
+          <td>Basic metadata only (filename, date, estimated duration)</td>
+          <td>Accurate duration, singing detection, silence detection, range selection for segments</td>
+        </tr>
+        <tr>
+          <td>Transcript Cleaning</td>
+          <td>8 automated processors + LLM cleaning with 5 presets</td>
+          <td>Same + JEM review interface with diff viewer, karaoke mode, confidence scoring, bulk approve</td>
+        </tr>
+        <tr>
+          <td>Training Pipeline</td>
+          <td>50-hour selection curated; cleaning automated</td>
+          <td>Full pipeline: clean, review, approve, send to fine-tuning with stage indicators throughout</td>
+        </tr>
+        <tr>
+          <td>Benchmarking</td>
+          <td>5 gold standard files; public leaderboard with WER/CER; model comparison</td>
+          <td>7 gold standard files; enforced separation from training; post-training validation loop</td>
+        </tr>
+        <tr>
+          <td>ASR Models</td>
+          <td>Whisper (OpenAI + YiddishLabs) with WER comparison</td>
+          <td>+ Gemini, fine-tuned custom models; version tracking; A/B testing framework</td>
+        </tr>
+        <tr>
+          <td>Review Workflow</td>
+          <td>Word-level alignment review for benchmark accuracy</td>
+          <td>Full JEM review interface: diff viewer + karaoke + confidence + inline edit + bulk actions</td>
+        </tr>
+        <tr>
+          <td>Pipeline Separation</td>
+          <td>Implicit (benchmark vs non-benchmark)</td>
+          <td>3 explicit pipelines (Benchmark / Training / Publishing) with enforced rules and visual status</td>
+        </tr>
+        <tr>
+          <td>Publishing</td>
+          <td>Not started</td>
+          <td>Separate review and publish flow; version selection; public transcript delivery</td>
+        </tr>
+        <tr>
+          <td>Real-Time Updates</td>
+          <td>WebSocket events for background jobs (clean, transcribe, align)</td>
+          <td>Same + real-time pipeline stage transitions and collaborative review notifications</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 7: UX PRINCIPLES
+     ═══════════════════════════════════════ -->
+<section class="section" id="ux">
+  <div class="section-header">
+    <h2><span class="num">07</span> UX Design Principles</h2>
+    <p>Every interface in the platform follows these core principles for an intuitive, efficient experience.</p>
+  </div>
+
+  <div class="ux-grid">
+    <div class="ux-card">
+      <span class="ux-icon" style="color:var(--accent-blue)">&#9673;</span>
+      <h3>Very Clean Interface</h3>
+      <p>Minimal chrome, maximum content. Dark theme with high contrast reduces eye strain during long review sessions. Every pixel serves a purpose.</p>
+    </div>
+    <div class="ux-card">
+      <span class="ux-icon" style="color:var(--accent-green)">&#9889;</span>
+      <h3>Easy to Use</h3>
+      <p>No training required. Smart defaults, contextual actions, and progressive disclosure. Complex features hidden until needed.</p>
+    </div>
+    <div class="ux-card">
+      <span class="ux-icon" style="color:var(--accent-magenta)">&#10140;</span>
+      <h3>Straightforward Workflow</h3>
+      <p>Linear progression through phases. Each step clearly leads to the next. Status indicators show exactly where every item stands.</p>
+    </div>
+    <div class="ux-card">
+      <span class="ux-icon" style="color:var(--accent-purple)">&#9670;</span>
+      <h3>Visual & Intuitive</h3>
+      <p>Color-coded status, confidence scores as progress bars, waveform visualizations, karaoke word highlighting. Information conveyed visually first.</p>
+    </div>
+    <div class="ux-card">
+      <span class="ux-icon" style="color:var(--accent-yellow)">&#9675;</span>
+      <h3>Minimal Cognitive Load</h3>
+      <p>One primary action per screen. Batch operations for efficiency. Smart suggestions reduce decision fatigue. RTL text handled natively.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="footer">
+  <p>JEM ASR Platform &mdash; User Journey Documentation</p>
+  <p style="margin-top:0.5rem">
+    <a href="https://mapping.kohnai.ai/architecture?v=2">Mapping Architecture</a> &middot;
+    <a href="https://abe1018776.github.io/yiddish-cleaner-docs/">Cleaner Docs</a> &middot;
+    <a href="https://github.com/Abe1018776/yiddish-audio-alignment">Audio Alignment Repo</a>
+  </p>
+  <p style="margin-top:0.75rem;color:var(--text-muted)">4,669 audio files &middot; 1,065 transcripts &middot; Hebrew years 5711&ndash;5752</p>
+</footer>
+
+<script>
+// ═══ THEME TOGGLE ═══
+function toggleTheme(){
+  const html=document.documentElement;
+  const current=html.getAttribute('data-theme');
+  html.setAttribute('data-theme',current==='dark'?'light':'dark');
+  localStorage.setItem('jem-theme',html.getAttribute('data-theme'));
+}
+(function(){
+  const saved=localStorage.getItem('jem-theme');
+  if(saved)document.documentElement.setAttribute('data-theme',saved);
+})();
+
+// ═══ NAV ACTIVE STATE ═══
+(function(){
+  const sections=document.querySelectorAll('.section, .hero');
+  const links=document.querySelectorAll('.nav-links a');
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const id=e.target.id;
+        links.forEach(l=>{
+          l.classList.toggle('active',l.getAttribute('href')==='#'+id);
+        });
+      }
+    });
+  },{rootMargin:'-40% 0px -55% 0px'});
+  sections.forEach(s=>{if(s.id)observer.observe(s)});
+})();
+
+// ═══ SCROLL ANIMATIONS ═══
+(function(){
+  const observer=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.style.opacity='1';
+        e.target.style.transform='translateY(0)';
+      }
+    });
+  },{threshold:0.1});
+  document.querySelectorAll('.tl-content,.pipeline-track,.view-card,.check-group,.priority-card,.ux-card').forEach(el=>{
+    el.style.opacity='0';
+    el.style.transform='translateY(20px)';
+    el.style.transition='opacity 0.5s ease, transform 0.5s ease, border-color 0.3s, box-shadow 0.3s';
+    observer.observe(el);
+  });
+})();
+</script>
+</body>
+</html>
