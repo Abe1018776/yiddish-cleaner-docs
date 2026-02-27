@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confidence Score UI Plan — Yiddish Audio Alignment</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface2: #334155;
+            --border: #475569;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+            --green: #4ade80;
+            --orange: #fb923c;
+            --red: #f87171;
+            --purple: #a78bfa;
+            --yellow: #fbbf24;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+        }
+
+        /* Hero */
+        .hero {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1a1a2e 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.75rem;
+        }
+        .hero .subtitle {
+            color: var(--muted);
+            font-size: 1.15rem;
+            max-width: 700px;
+            margin: 0 auto 1.5rem;
+        }
+        .hero .badge {
+            display: inline-block;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            padding: 0.4rem 1.2rem;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 3rem;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .section-title .num {
+            background: var(--accent);
+            color: var(--bg);
+            font-size: 0.85rem;
+            font-weight: 700;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .card h3 {
+            color: var(--text);
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+        }
+        .card p {
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Client Quote */
+        .quote {
+            background: linear-gradient(135deg, rgba(56,189,248,0.08), rgba(167,139,250,0.08));
+            border-left: 4px solid var(--accent);
+            border-radius: 0 12px 12px 0;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            font-style: italic;
+            color: var(--muted);
+            font-size: 1.05rem;
+            line-height: 1.8;
+        }
+        .quote strong { color: var(--text); font-style: normal; }
+        .quote .author {
+            margin-top: 0.75rem;
+            font-style: normal;
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        /* Comparison: Before/After */
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        @media (max-width: 768px) {
+            .comparison { grid-template-columns: 1fr; }
+        }
+        .comp-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .comp-header {
+            padding: 0.75rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .comp-header.before {
+            background: rgba(248,113,113,0.1);
+            color: var(--red);
+            border-bottom: 1px solid rgba(248,113,113,0.2);
+        }
+        .comp-header.after {
+            background: rgba(74,222,128,0.1);
+            color: var(--green);
+            border-bottom: 1px solid rgba(74,222,128,0.2);
+        }
+        .comp-body {
+            padding: 1.25rem;
+        }
+
+        /* Word Chips — mockup */
+        .chip-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            direction: rtl;
+        }
+        .chip {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px 10px 4px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: default;
+            transition: transform 0.15s;
+        }
+        .chip:hover { transform: scale(1.05); }
+        .chip .label {
+            font-size: 0.6rem;
+            font-weight: 600;
+            margin-top: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Before chips — timecode style */
+        .chip-tc {
+            background: var(--surface2);
+            border-left: 3px solid var(--green);
+        }
+        .chip-tc .label { color: var(--muted); }
+
+        /* After chips — confidence style */
+        .chip-conf-high {
+            background: rgba(74,222,128,0.15);
+            border: 1px solid rgba(74,222,128,0.4);
+        }
+        .chip-conf-high .label { color: var(--green); }
+        .chip-conf-mid {
+            background: rgba(251,191,36,0.15);
+            border: 1px solid rgba(251,191,36,0.4);
+        }
+        .chip-conf-mid .label { color: var(--yellow); }
+        .chip-conf-low {
+            background: rgba(248,113,113,0.15);
+            border: 1px solid rgba(248,113,113,0.4);
+        }
+        .chip-conf-low .label { color: var(--red); }
+
+        /* Legend mockup */
+        .legend-mock {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            padding: 0.75rem;
+            background: var(--surface2);
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+        .legend-mock .item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-mock .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        /* Color explainer table */
+        .color-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .color-table th,
+        .color-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        .color-table th {
+            background: var(--surface2);
+            color: var(--muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        /* Flow diagram */
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            flex-wrap: wrap;
+            margin: 1.5rem 0;
+        }
+        .flow-node {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem 1.25rem;
+            text-align: center;
+            font-size: 0.85rem;
+            min-width: 140px;
+        }
+        .flow-node .title {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+        .flow-node .desc {
+            color: var(--muted);
+            font-size: 0.75rem;
+        }
+        .flow-arrow {
+            color: var(--border);
+            font-size: 1.5rem;
+            padding: 0 0.5rem;
+        }
+
+        /* Stats mockup */
+        .stats-mock {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+            font-size: 0.85rem;
+        }
+        .stat-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem 1.25rem;
+            text-align: center;
+        }
+        .stat-item .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .stat-item .label {
+            color: var(--muted);
+            font-size: 0.75rem;
+            margin-top: 4px;
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            color: #c9d1d9;
+            margin: 0.75rem 0;
+        }
+        .code-block .comment { color: #8b949e; }
+        .code-block .keyword { color: #ff7b72; }
+        .code-block .string { color: #a5d6ff; }
+        .code-block .number { color: #79c0ff; }
+        .code-block .prop { color: #d2a8ff; }
+
+        /* Checklist */
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 0.5rem 0;
+            padding-left: 1.75rem;
+            position: relative;
+            color: var(--muted);
+        }
+        .checklist li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.65rem;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+        }
+
+        /* Tooltip mockup */
+        .tooltip-mock {
+            display: inline-block;
+            position: relative;
+            cursor: default;
+        }
+        .tooltip-mock .tip {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text);
+            color: var(--bg);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .tooltip-mock .tip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--text);
+        }
+
+        /* Divider */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 2rem 0;
+        }
+
+        /* Highlight */
+        .highlight {
+            background: rgba(56,189,248,0.1);
+            border: 1px solid rgba(56,189,248,0.3);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+        }
+        .highlight strong { color: var(--accent); }
+
+        /* Pill tags */
+        .pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .pill-green { background: rgba(74,222,128,0.15); color: var(--green); }
+        .pill-orange { background: rgba(251,191,36,0.15); color: var(--yellow); }
+        .pill-red { background: rgba(248,113,113,0.15); color: var(--red); }
+        .pill-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+
+        /* Scope */
+        .scope-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            margin: 0.25rem;
+        }
+        .scope-badge .icon { font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+    <h1>Confidence Score UI Plan</h1>
+    <p class="subtitle">Replace timecodes with per-word confidence ratings in the Yiddish Audio Alignment UI</p>
+    <span class="badge">Feature Branch: feature/stable-ts-alignment</span>
+</div>
+
+<div class="container">
+
+    <!-- Client Feedback -->
+    <div class="section">
+        <div class="quote">
+            <strong>"I am loving this, can't wait to see the merged version.</strong><br>
+            Instead of seeing the timecode, can we see the actual confidence rating?
+            The TC isn't so important if it synced anyway.<br>
+            Can you explain the difference between orange and red here?"
+            <div class="author">— Client Feedback</div>
+        </div>
+    </div>
+
+    <!-- Key Finding -->
+    <div class="section">
+        <div class="highlight">
+            <strong>Key Finding:</strong> The confidence data already exists in the API response — every word has a
+            <code>confidence</code> field (0.0–1.0) from Whisper's <code>w.probability</code>.
+            This is purely a <strong>frontend-only change</strong>. No backend modifications needed.
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:1rem;">
+            <span class="scope-badge"><span class="icon">📄</span> 1 file to change</span>
+            <span class="scope-badge"><span class="icon">🎨</span> Frontend only</span>
+            <span class="scope-badge"><span class="icon">🔧</span> No backend changes</span>
+            <span class="scope-badge"><span class="icon">📍</span> site/public/index.html</span>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Section 1: The Problem -->
+    <div class="section">
+        <h2 class="section-title"><span class="num">1</span> Current State — What the Client Sees</h2>
+
+        <div class="card">
+            <h3>Word Chips Show Timecodes (Not Useful)</h3>
+            <p>Each aligned word is displayed as a chip with a timecode like <code>0.52s</code>. Confidence is only shown as a barely-visible 3px left border.</p>
+
+            <div class="comp-panel" style="margin-top:1rem;">
+                <div class="comp-header before">Current UI — Timecodes + Subtle Border</div>
+                <div class="comp-body">
+                    <div class="chip-grid">
+                        <div class="chip chip-tc">דאָס<span class="label">0.12s</span></div>
+                        <div class="chip chip-tc">איז<span class="label">0.52s</span></div>
+                        <div class="chip chip-tc">אַ<span class="label">0.87s</span></div>
+                        <div class="chip chip-tc" style="border-left-color: #eab308;">טעסט<span class="label">1.23s</span></div>
+                        <div class="chip chip-tc" style="border-left-color: var(--red);">פֿון<span class="label">1.65s</span></div>
+                        <div class="chip chip-tc">דער<span class="label">2.01s</span></div>
+                        <div class="chip chip-tc">סיסטעם<span class="label">2.44s</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <p style="margin-top:1rem; font-size:0.85rem;">
+                <span class="pill pill-red">Problem 1</span> Timecodes are noise — if it synced, the user doesn't need them<br>
+                <span class="pill pill-red">Problem 2</span> 3px left-border confidence is too subtle to notice<br>
+                <span class="pill pill-red">Problem 3</span> No legend — client can't tell what orange vs red means<br>
+                <span class="pill pill-red">Problem 4</span> Thresholds wrong (0.5/0.2) — don't match backend's 0.4 cutoff
+            </p>
+        </div>
+    </div>
+
+    <!-- Section 2: The Solution -->
+    <div class="section">
+        <h2 class="section-title"><span class="num">2</span> Proposed Design — Confidence-First Display</h2>
+
+        <div class="comparison">
+            <div class="comp-panel">
+                <div class="comp-header before">Before — Timecodes</div>
+                <div class="comp-body">
+                    <div class="chip-grid">
+                        <div class="chip chip-tc">דאָס<span class="label">0.12s</span></div>
+                        <div class="chip chip-tc">איז<span class="label">0.52s</span></div>
+                        <div class="chip chip-tc">אַ<span class="label">0.87s</span></div>
+                        <div class="chip chip-tc" style="border-left-color:#eab308;">טעסט<span class="label">1.23s</span></div>
+                        <div class="chip chip-tc" style="border-left-color:var(--red);">פֿון<span class="label">1.65s</span></div>
+                        <div class="chip chip-tc">דער<span class="label">2.01s</span></div>
+                        <div class="chip chip-tc">סיסטעם<span class="label">2.44s</span></div>
+                    </div>
+                    <p style="font-size:0.75rem; color:var(--muted); margin-top:0.75rem; text-align:center;">
+                        Subtle left-border. No legend. Timecodes everywhere.
+                    </p>
+                </div>
+            </div>
+
+            <div class="comp-panel">
+                <div class="comp-header after">After — Confidence Scores</div>
+                <div class="comp-body">
+                    <div class="chip-grid">
+                        <div class="chip chip-conf-high">דאָס<span class="label">95%</span></div>
+                        <div class="chip chip-conf-high">איז<span class="label">88%</span></div>
+                        <div class="chip chip-conf-high">אַ<span class="label">92%</span></div>
+                        <div class="chip chip-conf-mid">
+                            <span class="tooltip-mock">
+                                טעסט
+                                <span class="tip">Confidence: 62.3% | Time: 1.23s–1.64s</span>
+                            </span>
+                            <span class="label">62%</span>
+                        </div>
+                        <div class="chip chip-conf-low">פֿון<span class="label">28%</span></div>
+                        <div class="chip chip-conf-high">דער<span class="label">91%</span></div>
+                        <div class="chip chip-conf-high">סיסטעם<span class="label">84%</span></div>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="legend-mock">
+                        <div class="item"><div class="dot" style="background:rgba(74,222,128,0.6);"></div> High (80–100%)</div>
+                        <div class="item"><div class="dot" style="background:rgba(251,191,36,0.6);"></div> Uncertain (40–79%)</div>
+                        <div class="item"><div class="dot" style="background:rgba(248,113,113,0.6);"></div> Low (&lt;40%)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="highlight">
+            <strong>Timecodes still accessible:</strong> Hover any word to see a tooltip with the exact confidence percentage
+            AND the timecode. Clicking still plays the audio from that word's position. Nothing is lost — just reprioritized.
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Section 3: Color Explanation -->
+    <div class="section">
+        <h2 class="section-title"><span class="num">3</span> Color Meanings — Answering "Orange vs Red"</h2>
+
+        <div class="card">
+            <table class="color-table">
+                <thead>
+                    <tr>
+                        <th>Color</th>
+                        <th>Confidence Range</th>
+                        <th>What It Means</th>
+                        <th>Action Needed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="color-swatch" style="background:rgba(74,222,128,0.4);"></span> <strong style="color:var(--green)">Green</strong></td>
+                        <td>80–100%</td>
+                        <td>Whisper is highly confident the word was correctly recognized and aligned to the right moment in the audio</td>
+                        <td><span class="pill pill-green">Trust it</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="color-swatch" style="background:rgba(251,191,36,0.4);"></span> <strong style="color:var(--yellow)">Orange</strong></td>
+                        <td>40–79%</td>
+                        <td>Whisper recognized the word but isn't fully sure — could be background noise, unclear speech, or the word sounds similar to another</td>
+                        <td><span class="pill pill-orange">Spot-check</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="color-swatch" style="background:rgba(248,113,113,0.4);"></span> <strong style="color:var(--red)">Red</strong></td>
+                        <td>Below 40%</td>
+                        <td>Whisper is guessing — the audio may be garbled, the speaker may be mumbling, or the alignment drifted. The backend flags these as "confusion zones"</td>
+                        <td><span class="pill pill-red">Review manually</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="margin-top:1rem; font-size:0.85rem;">
+                The <strong>0.4 threshold</strong> matches the backend's <code>good_seg_prob_threshold</code> — words the alignment engine
+                internally considers "bad" will appear red in the UI. The 0.8 threshold separates "high confidence" from "needs a glance."
+            </p>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Section 4: Data Flow -->
+    <div class="section">
+        <h2 class="section-title"><span class="num">4</span> Data Flow — Confidence Already Exists</h2>
+
+        <div class="flow">
+            <div class="flow-node">
+                <div class="title">Whisper Model</div>
+                <div class="desc">yi-whisper-large-v3-turbo</div>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node">
+                <div class="title">stable_whisper</div>
+                <div class="desc">w.probability per word</div>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node">
+                <div class="title">alignment_bp.py</div>
+                <div class="desc">round(w.probability, 4)</div>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node" style="border-color: var(--accent);">
+                <div class="title">API Response</div>
+                <div class="desc">"confidence": 0.9234</div>
+            </div>
+            <span class="flow-arrow">→</span>
+            <div class="flow-node" style="border-color: var(--green);">
+                <div class="title">Frontend UI</div>
+                <div class="desc">Show as 92% + color</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Current API Response (Already Includes Confidence)</h3>
+            <div class="code-block">
+<span class="comment">// POST /api/alignment/align — response per word</span>
+{
+  <span class="string">"segments"</span>: [{
+    <span class="string">"start"</span>: <span class="number">0.0</span>,
+    <span class="string">"end"</span>: <span class="number">12.5</span>,
+    <span class="string">"text"</span>: <span class="string">"דאָס איז אַ טעסט"</span>,
+    <span class="string">"words"</span>: [
+      { <span class="string">"word"</span>: <span class="string">"דאָס"</span>, <span class="string">"start"</span>: <span class="number">0.12</span>, <span class="string">"end"</span>: <span class="number">0.48</span>, <span class="prop">"confidence"</span>: <span class="number">0.9523</span> },
+      { <span class="string">"word"</span>: <span class="string">"איז"</span>,  <span class="string">"start"</span>: <span class="number">0.52</span>, <span class="string">"end"</span>: <span class="number">0.83</span>, <span class="prop">"confidence"</span>: <span class="number">0.8847</span> },
+      { <span class="string">"word"</span>: <span class="string">"אַ"</span>,   <span class="string">"start"</span>: <span class="number">0.87</span>, <span class="string">"end"</span>: <span class="number">1.15</span>, <span class="prop">"confidence"</span>: <span class="number">0.9201</span> },
+      { <span class="string">"word"</span>: <span class="string">"טעסט"</span>, <span class="string">"start"</span>: <span class="number">1.23</span>, <span class="string">"end"</span>: <span class="number">1.64</span>, <span class="prop">"confidence"</span>: <span class="number">0.6234</span> }
+    ]
+  }]
+}
+            </div>
+            <p style="font-size: 0.85rem;">The <code class="prop" style="color:var(--purple)">confidence</code> field is already there. We just need to display it.</p>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Section 5: Stats Summary -->
+    <div class="section">
+        <h2 class="section-title"><span class="num">5</span> Enhanced Stats Summary</h2>
+
+        <div class="card">
+            <h3>Current Stats — Just Counts</h3>
+            <div class="stats-mock">
+                <div class="stat-item"><div class="value" style="color:var(--text);">847</div><div class="label">words</div></div>
+                <div class="stat-item"><div class="value" style="color:var(--text);">42</div><div class="label">segments</div></div>
+                <div class="stat-item"><div class="value" style="color:var(--muted);">yi-whisper</div><div class="label">model</div></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Proposed Stats — Confidence Distribution</h3>
+            <div class="stats-mock">
+                <div class="stat-item"><div class="value" style="color:var(--text);">847</div><div class="label">words</div></div>
+                <div class="stat-item"><div class="value" style="color:var(--text);">42</div><div class="label">segments</div></div>
+                <div class="stat-item"><div class="value" style="color:var(--green);">87%</div><div class="label">avg confidence</div></div>
+                <div class="stat-item"><div class="value" style="color:var(--green);">724</div><div class="label">high</div></div>
+                <div class="stat-item"><div class="value" style="color:var(--yellow);">98</div><div class="label">uncertain</div></div>
+                <div class="stat-item"><div class="value" style="color:var(--red);">25</div><div class="label">low</div></div>
+            </div>
+            <p style="font-size:0.85rem; margin-top:0.75rem;">At a glance: 85% of words are high-confidence. 25 words need manual review. Average alignment confidence is 87%.</p>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Section 6: Segments Table -->
+    <div class="section">
+        <h2 class="section-title"><span class="num">6</span> Segments Table — Add Confidence Column</h2>
+
+        <div class="card">
+            <h3>Add per-segment average confidence</h3>
+            <p>The segments table currently shows Start, End, Text. Add a Confidence column showing the average of word-level confidences within each segment.</p>
+
+            <table class="color-table" style="margin-top: 1rem;">
+                <thead>
+                    <tr><th>Start</th><th>End</th><th>Confidence</th><th>Text</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>0.00s</td><td>5.23s</td>
+                        <td><strong style="color:var(--green)">91%</strong></td>
+                        <td style="direction:rtl">דאָס איז אַ טעסט פֿון דער סיסטעם</td>
+                    </tr>
+                    <tr>
+                        <td>5.50s</td><td>11.20s</td>
+                        <td><strong style="color:var(--yellow)">67%</strong></td>
+                        <td style="direction:rtl">מיר האָבן געהאַט אַ שװערע צײַט</td>
+                    </tr>
+                    <tr>
+                        <td>11.80s</td><td>16.40s</td>
+                        <td><strong style="color:var(--red)">32%</strong></td>
+                        <td style="direction:rtl">[garbled audio — confusion zone]</td>
+                    </tr>
+                    <tr>
+                        <td>17.00s</td><td>22.10s</td>
+                        <td><strong style="color:var(--green)">89%</strong></td>
+                        <td style="direction:rtl">און דאָס איז געװען זײער גוט</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Section 7: Implementation Steps -->
+    <div class="section">
+        <h2 class="section-title"><span class="num">7</span> Implementation Checklist</h2>
+
+        <div class="card">
+            <h3>File: <code>site/public/index.html</code></h3>
+            <p>All changes are in this single file (HTML + CSS + JS in one).</p>
+
+            <ul class="checklist" style="margin-top:1rem;">
+                <li><strong>Add Tippy.js</strong> — Script tags in &lt;head&gt; for tooltip library (3 lines)</li>
+                <li><strong>Update CSS confidence classes</strong> — Replace 3px left-border with colored backgrounds (~line 207)</li>
+                <li><strong>Add new CSS</strong> — .conf-badge, .legend-bar, .legend-item styles</li>
+                <li><strong>Fix thresholds</strong> — Change from 0.5/0.2 to 0.8/0.4 (~line 482)</li>
+                <li><strong>Replace timecode with confidence badge</strong> — Show "85%" instead of "0.52s" (~line 484)</li>
+                <li><strong>Store data attributes</strong> — data-start, data-end, data-confidence on each chip</li>
+                <li><strong>Initialize tooltips</strong> — Show confidence + timecode on hover (after chip loop)</li>
+                <li><strong>Add color legend</strong> — Green/Orange/Red explanation bar above word grid</li>
+                <li><strong>Update stats summary</strong> — Show avg confidence + high/uncertain/low distribution (~line 467)</li>
+                <li><strong>Add segments table column</strong> — Per-segment average confidence (~line 488)</li>
+            </ul>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Section 8: What Stays the Same -->
+    <div class="section">
+        <h2 class="section-title"><span class="num">8</span> What Stays the Same</h2>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+            <div class="card">
+                <h3 style="color: var(--green);">Audio Playback</h3>
+                <p>Click any word to play from that position. The <code>playWord()</code> function and <code>timeupdate</code> listener are unchanged — they use the same start/end times stored in data attributes.</p>
+            </div>
+            <div class="card">
+                <h3 style="color: var(--green);">RTL Support</h3>
+                <p>The <code>.word-grid</code> already uses <code>direction: rtl</code>. Background colors and borders are direction-independent. No RTL issues.</p>
+            </div>
+            <div class="card">
+                <h3 style="color: var(--green);">Backend API</h3>
+                <p>Zero changes. Both the Flask endpoint and RunPod handler already return per-word <code>confidence</code>. The Cloudflare proxy passes it through unchanged.</p>
+            </div>
+            <div class="card">
+                <h3 style="color: var(--green);">Cleaning UI</h3>
+                <p>The Flask transcript cleaner (<code>templates/index.html</code>) is a separate feature and is not affected by these changes.</p>
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Source Relationship -->
+    <div class="section">
+        <h2 class="section-title"><span class="num">9</span> Origin — ivrit.ai Source Files</h2>
+
+        <div class="card">
+            <h3>3 Original Python Files from ivrit.ai</h3>
+            <p>The project was initially based on <a href="https://github.com/ivrit-ai/ivrit.ai/tree/master/alignment" style="color:var(--accent);">github.com/ivrit-ai/ivrit.ai/tree/master/alignment</a></p>
+
+            <table class="color-table" style="margin-top:1rem;">
+                <thead>
+                    <tr><th>Feature</th><th>ivrit.ai (Original)</th><th>yiddish-audio-alignment (Extended)</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Engine</td>
+                        <td>stable_whisper + faster_whisper</td>
+                        <td>Same</td>
+                    </tr>
+                    <tr>
+                        <td>Confidence</td>
+                        <td><code>w.probability</code> exposed in output</td>
+                        <td>Same + used for confusion zone detection</td>
+                    </tr>
+                    <tr>
+                        <td>Model</td>
+                        <td>ivrit-ai/whisper-large-v3-turbo-ct2</td>
+                        <td>ivrit-ai/<strong>yi</strong>-whisper-large-v3-turbo-ct2 (Yiddish)</td>
+                    </tr>
+                    <tr>
+                        <td>Failure Recovery</td>
+                        <td>Basic breakable aligner</td>
+                        <td>Enhanced: retry, skip-and-realign, text matching</td>
+                    </tr>
+                    <tr>
+                        <td>UI</td>
+                        <td>CLI only</td>
+                        <td>Flask web app + Cloudflare Pages frontend</td>
+                    </tr>
+                    <tr>
+                        <td>Cleaning</td>
+                        <td>None</td>
+                        <td>Full plugin pipeline with clean_rate scoring</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="margin-top:1rem; font-size:0.85rem;">
+                Both the original and extended versions use <code>w.probability</code> from stable_whisper. The confidence score mechanism is inherited directly from the ivrit.ai foundation — the yiddish project extends it with smarter failure handling but the core scoring is identical.
+            </p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="text-align:center; padding:2rem 0; color:var(--muted); font-size:0.8rem;">
+        <p>Generated Feb 27, 2026 — Yiddish Audio Alignment Project</p>
+        <p style="margin-top:0.25rem;">Repository: <a href="https://github.com/Abe1018776/yiddish-audio-alignment/tree/feature/stable-ts-alignment" style="color:var(--accent);">Abe1018776/yiddish-audio-alignment</a> (feature/stable-ts-alignment)</p>
+    </div>
+
+</div>
+
+</body>
+</html>
